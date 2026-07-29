@@ -1,7 +1,7 @@
 # Open Device Toolkit Roadmap
 
 ## Project goal
-Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, documenting, diagnosing, backing up, and eventually interacting with electronic devices. The design favors transparent evidence, reversible operations, and explicit confirmation before writes.
+Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, documenting, diagnosing, backing up, and interacting with electronic devices. The design favors transparent evidence, reversible operations, and explicit confirmation before high-impact writes.
 
 ## Milestones
 
@@ -19,19 +19,26 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 - [ ] CI build verification
 
 ### 0.2 - PC/tooling diagnostics
-- [ ] Driver inventory
 - [x] ADB/Fastboot tool detection
-- [ ] LG/Qualcomm tool detection
 - [x] Tool version reporting
+- [ ] Driver inventory
+- [ ] LG/Qualcomm tool detection
 - [ ] Download manager with checksums
 
-### 0.3 - Android/LG research workbench
+### 0.3 - Android/LG operation workbench
+- [x] Operation risk model
+- [x] Explicit-confirmation guard
+- [x] Guarded ADB reboot operations
+- [x] Guarded bootloader/recovery transitions
+- [x] Guarded ADB root request
 - [ ] Partition map inspection
 - [ ] A/B slot analysis
 - [ ] Boot-chain analysis
 - [ ] LG Download Mode detection
 - [ ] Qualcomm 9008 detection
 - [ ] Device-specific knowledge cards
+- [ ] Fastboot operation provider
+- [ ] Firmware flashing workflow
 
 ### 0.4 - Safe backup and snapshots
 - [ ] Read-only partition metadata
@@ -55,7 +62,7 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 - [ ] Release packaging
 
 ## Current implementation
-The repository contains the first functional .NET 8 Windows Forms application, a Core library, and an Android provider. Alpha 0.1 includes local/PATH ADB discovery, structured file logging, environment diagnostics, and automated Android parser/state tests. The 0.2 tooling layer now detects ADB/Fastboot and probes their versions without modifying the host or device. CI is configured to build the application and test project and run the tests; it remains unchecked until a successful workflow run is confirmed.
+ODT now has an explicit operation layer separating read-only, reversible, and destructive actions. Every operation requires a target serial, while high-impact operations can require explicit confirmation. Android currently exposes guarded ADB reboot, bootloader, recovery, and root-request operations. These are library-level capabilities first; the GUI will expose them only after target selection and confirmation UX are implemented.
 
 ## Longer-term research
 - RP2040 multifunction bridge
@@ -65,7 +72,5 @@ The repository contains the first functional .NET 8 Windows Forms application, a
 - Firmware identification and backup
 - Hardware probing and protocol discovery
 
-These are research goals, not promises of universal automatic identification. Hardware with no readable identity or standard boot protocol may require user input or an adapter-specific probe.
-
 ## Safety rule
-Read-only inspection comes first. Any future operation that can alter firmware, boot partitions, calibration data, security state, or other persistent device state must identify the target, explain the risk, verify prerequisites, and require deliberate confirmation.
+ODT is not permanently read-only. Modification is a core goal. Operations that can alter firmware, boot partitions, calibration data, security state, or other persistent device state must identify the target, describe the expected effect and risk, verify prerequisites, and require deliberate confirmation before execution.
