@@ -32,7 +32,7 @@ public sealed class AdbManager
         if (!result.Success)
             return Array.Empty<(string, DeviceConnectionState)>();
 
-        var devices = new List<(string, DeviceConnectionState)>();
+        var devices = new List<(string Serial, DeviceConnectionState State)>();
         foreach (var rawLine in result.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
             var line = rawLine.Trim();
@@ -64,6 +64,16 @@ public sealed class AdbManager
 
         var properties = ParseProperties(result.StandardOutput);
         return new AndroidDevice(serial, DeviceConnectionState.Connected, properties);
+    }
+
+    public Task<CommandResult> RunAsync(string serial, string arguments, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(serial))
+            throw new ArgumentException("A device serial is required.", nameof(serial));
+        if (string.IsNullOrWhiteSpace(arguments))
+            throw new ArgumentException("ADB arguments are required.", nameof(arguments));
+
+        return _runner.RunAsync(_adbPath, $"-s {Quote(serial)} {arguments}", timeout: TimeSpan.FromSeconds(30), cancellationToken: cancellationToken);
     }
 
     public async Task<CommandResult> RunShellAsync(string serial, string command, CancellationToken cancellationToken = default)
