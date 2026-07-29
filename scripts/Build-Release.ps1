@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $app = Join-Path $repoRoot 'src\OpenDeviceToolkit.App\OpenDeviceToolkit.App.csproj'
-out = Join-Path $repoRoot 'artifacts\OpenDeviceToolkit'
+$out = Join-Path $repoRoot 'artifacts\OpenDeviceToolkit'
 
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     throw 'The .NET SDK was not found. Install .NET 8 SDK and run this script again.'
