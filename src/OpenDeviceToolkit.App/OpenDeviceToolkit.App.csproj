@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>OpenDeviceToolkit</AssemblyName>
+    <RootNamespace>OpenDeviceToolkit.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64</Platforms>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OpenDeviceToolkit.Core\OpenDeviceToolkit.Core.csproj" />
+    <ProjectReference Include="..\OpenDeviceToolkit.Android\OpenDeviceToolkit.Android.csproj" />
+  </ItemGroup>
+</Project>
