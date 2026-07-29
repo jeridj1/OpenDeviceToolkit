@@ -7,6 +7,7 @@ public sealed class MainForm : Form
 {
     private readonly Workspace _workspace = new();
     private readonly AdbManager _adb;
+    private readonly AppLogger _logger;
     private readonly AndroidReportWriter _reportWriter = new();
     private readonly Label _status = new();
     private readonly Label _deviceSummary = new();
@@ -17,6 +18,12 @@ public sealed class MainForm : Form
     public MainForm()
     {
         _adb = new AdbManager(new CommandRunner(), workspace: _workspace);
+        _logger = new AppLogger(_workspace);
+        _logger.Info("application.start", "Open Device Toolkit started", new Dictionary<string, object?>
+        {
+            ["adbCandidate"] = _adb.AdbPath,
+            ["workspace"] = _workspace.Root
+        });
 
         Text = "Open Device Toolkit 0.1 Alpha";
         StartPosition = FormStartPosition.CenterScreen;
@@ -80,10 +87,22 @@ public sealed class MainForm : Form
     {
         _scanButton.Enabled = false;
         _status.Text = "Status\r\n------\r\nChecking ADB...\r\n\r\nCandidate:\r\n" + _adb.AdbPath;
+        _logger.Info("scan.start", "Beginning Android device scan", new Dictionary<string, object?>
+        {
+            ["adbPath"] = _adb.AdbPath
+        });
+
         try
         {
             _workspace.EnsureDirectories();
-            if (!await _adb.IsAvailableAsync())
+            var adbAvailable = await _adb.IsAvailableAsync();
+            _logger.Info("adb.availability", "ADB availability check completed", new Dictionary<string, object?>
+            {
+                ["available"] = adbAvailable,
+                ["adbPath"] = _adb.AdbPath
+            });
+
+            if (!adbAvailable)
             {
                 _device = null;
                 _deviceSummary.Text = "ADB was not found.\r\n\r\nInstall Android Platform Tools or place adb.exe in the ODT Tools folder or on PATH.";
@@ -92,6 +111,11 @@ public sealed class MainForm : Form
             }
 
             var devices = await _adb.GetDevicesAsync();
+            _logger.Info("adb.devices", "ADB device enumeration completed", new Dictionary<string, object?>
+            {
+                ["count"] = devices.Count
+            });
+
             if (devices.Count == 0)
             {
                 _device = null;
@@ -106,6 +130,10 @@ public sealed class MainForm : Form
                 _device = null;
                 _deviceSummary.Text = $"Device: {first.Serial}\r\nState: {first.State}";
                 _status.Text = "Status\r\n------\r\nDevice detected, but it is not authorized/online.\r\n\r\nADB:\r\n" + _adb.AdbPath;
+                _logger.Warning("device.not-ready", "First detected device is not ready for inspection", new Dictionary<string, object?>
+                {
+                    ["state"] = first.State.ToString()
+                });
                 return;
             }
 
@@ -113,6 +141,7 @@ public sealed class MainForm : Form
             if (_device is null)
             {
                 _deviceSummary.Text = "Device was detected, but inspection failed.";
+                _logger.Warning("device.inspect-failed", "ADB detected a device but getprop inspection failed");
                 return;
             }
 
@@ -126,10 +155,17 @@ public sealed class MainForm : Form
                                   $"Serial: {_device.Serial}";
             _output.Text = string.Join(Environment.NewLine, _device.Properties.OrderBy(x => x.Key).Select(x => $"[{x.Key}]: [{x.Value}]"));
             _status.Text = "Status\r\n------\r\nADB: Connected\r\nInspection: Complete\r\nMode: Read-only\r\n\r\nADB:\r\n" + _adb.AdbPath + "\r\n\r\nWorkspace:\r\n" + _workspace.Root;
+            _logger.Info("device.inspected", "Android device inspection completed", new Dictionary<string, object?>
+            {
+                ["propertyCount"] = _device.Properties.Count,
+                ["model"] = _device.Model,
+                ["platform"] = _device.Platform
+            });
         }
         catch (Exception ex)
         {
             _status.Text = $"Status\r\n------\r\nError: {ex.Message}";
+            _logger.Error("scan.failed", "Android device scan failed", ex);
         }
         finally
         {
@@ -148,10 +184,15 @@ public sealed class MainForm : Form
         try
         {
             var path = _reportWriter.Write(_workspace, _device);
+            _logger.Info("report.created", "Android inspection report created", new Dictionary<string, object?>
+            {
+                ["path"] = path
+            });
             MessageBox.Show(this, $"Report saved to:\r\n{path}", "Report created", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {
+            _logger.Error("report.failed", "Could not create Android inspection report", ex);
             MessageBox.Show(this, ex.Message, "Could not create report", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
@@ -170,6 +211,7 @@ public sealed class MainForm : Form
         }
         catch (Exception ex)
         {
+            _logger.Error("workspace.open-failed", "Could not open workspace", ex);
             MessageBox.Show(this, ex.Message, "Could not open workspace", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
