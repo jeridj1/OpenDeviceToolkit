@@ -10,29 +10,42 @@ public sealed class ToolLocator
 
     public ToolInfo Find(string executableName)
     {
-        var localCandidates = new[]
-        {
-            Path.Combine(_workspace.Tools, executableName),
-            Path.Combine(_workspace.Tools, "platform-tools", executableName),
-            Path.Combine(_workspace.Tools, "adb", executableName)
-        };
+        if (string.IsNullOrWhiteSpace(executableName))
+            throw new ArgumentException("An executable name is required.", nameof(executableName));
 
-        foreach (var candidate in localCandidates)
-            if (File.Exists(candidate))
-                return new ToolInfo(executableName, candidate, true);
+        var names = OperatingSystem.IsWindows() && !executableName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+            ? new[] { executableName + ".exe", executableName }
+            : new[] { executableName };
+
+        foreach (var name in names)
+        {
+            var localCandidates = new[]
+            {
+                Path.Combine(_workspace.Tools, name),
+                Path.Combine(_workspace.Tools, "platform-tools", name),
+                Path.Combine(_workspace.Tools, "adb", name)
+            };
+
+            foreach (var candidate in localCandidates)
+                if (File.Exists(candidate))
+                    return new ToolInfo(executableName, candidate, true);
+        }
 
         var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
         foreach (var directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
         {
-            try
+            foreach (var name in names)
             {
-                var candidate = Path.Combine(directory.Trim(), executableName);
-                if (File.Exists(candidate))
-                    return new ToolInfo(executableName, candidate, true);
-            }
-            catch (ArgumentException)
-            {
-                // Ignore malformed PATH entries.
+                try
+                {
+                    var candidate = Path.Combine(directory.Trim(), name);
+                    if (File.Exists(candidate))
+                        return new ToolInfo(executableName, candidate, true);
+                }
+                catch (ArgumentException)
+                {
+                    // Ignore malformed PATH entries.
+                }
             }
         }
 
