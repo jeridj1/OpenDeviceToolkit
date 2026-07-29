@@ -7,11 +7,22 @@ public sealed class AdbManager
     private readonly CommandRunner _runner;
     private readonly string _adbPath;
 
-    public AdbManager(CommandRunner runner, string? adbPath = null)
+    public AdbManager(CommandRunner runner, string? adbPath = null, Workspace? workspace = null)
     {
         _runner = runner;
-        _adbPath = string.IsNullOrWhiteSpace(adbPath) ? "adb" : adbPath;
+
+        if (!string.IsNullOrWhiteSpace(adbPath))
+        {
+            _adbPath = adbPath;
+            return;
+        }
+
+        var locator = new ToolLocator(workspace ?? new Workspace());
+        var tool = locator.Find("adb.exe");
+        _adbPath = tool.Path ?? "adb.exe";
     }
+
+    public string AdbPath => _adbPath;
 
     public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
@@ -32,7 +43,7 @@ public sealed class AdbManager
         if (!result.Success)
             return Array.Empty<(string, DeviceConnectionState)>();
 
-        var devices = new List<(string, DeviceConnectionState)>();
+        var devices = new List<(string Serial, DeviceConnectionState State)>();
         foreach (var rawLine in result.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
             var line = rawLine.Trim();
