@@ -33,9 +33,9 @@ A complete `getprop` dump was collected by the user as `phone_properties.txt` an
 
 The repository now contains the first functional .NET 8 Windows Forms application and provider layers:
 
-- `OpenDeviceToolkit.Core`: command execution and workspace services.
+- `OpenDeviceToolkit.Core`: command execution, workspace services, robust external-tool discovery, and structured JSON Lines logging.
 - `OpenDeviceToolkit.Android`: ADB discovery, `adb devices` parsing, `getprop` parsing, typed Android device state, and report generation.
-- `OpenDeviceToolkit.App`: light-theme Windows UI that scans automatically at startup and can manually rescan, generate a report, and open the workspace.
+- `OpenDeviceToolkit.App`: light-theme Windows UI that scans automatically at startup and can manually rescan, generate a report, open the workspace, and display the resolved ADB path.
 - `.github/workflows/build.yml`: Windows CI restore/build workflow.
 - `scripts/Build-Release.ps1`: self-contained win-x64 single-file publish helper.
 
@@ -47,8 +47,8 @@ Continue the first milestone in small, testable increments.
 
 ### Alpha 0.1 remaining work
 
-1. Add robust ADB path discovery, including the ODT local Tools directory.
-2. Add structured application logging.
+1. ~~Add robust ADB path discovery, including the ODT local Tools directory.~~
+2. ~~Add structured application logging.~~
 3. Add basic Windows/tool environment diagnostics.
 4. Add automated parser/state tests.
 5. Confirm the Windows CI build succeeds.
