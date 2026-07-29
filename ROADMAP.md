@@ -8,13 +8,16 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 
 ### 0.1 Alpha - Device reconnaissance
 - [x] Repository and architecture baseline
-- [ ] Windows GUI shell
-- [ ] ADB discovery
-- [ ] Android device information
-- [ ] Raw property collection
-- [ ] Human-readable report generation
-- [ ] Workspace/log management
+- [x] Windows GUI shell
+- [x] ADB discovery
+- [x] Android device information
+- [x] Raw property collection
+- [x] Human-readable report generation
+- [x] Workspace management
+- [ ] Structured application logging
 - [ ] Basic environment checks
+- [ ] Automated parser tests
+- [ ] CI build verification
 
 ### 0.2 - PC/tooling diagnostics
 - [ ] Driver inventory
@@ -51,6 +54,10 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 - [ ] Automated tests
 - [ ] Reproducible builds
 - [ ] Release packaging
+
+## Current implementation
+
+The repository now contains the first functional .NET 8 Windows Forms application, a Core library, and an Android provider. The alpha can discover ADB, enumerate Android devices, collect `getprop`, display important state, and write a text report. A Windows GitHub Actions build workflow has also been added; the first workflow run will establish whether the current project builds cleanly on Windows.
 
 ## Longer-term research
 
