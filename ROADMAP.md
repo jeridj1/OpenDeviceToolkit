@@ -20,9 +20,9 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 
 ### 0.2 - PC/tooling diagnostics
 - [ ] Driver inventory
-- [ ] ADB/Fastboot tool detection
+- [x] ADB/Fastboot tool detection
 - [ ] LG/Qualcomm tool detection
-- [ ] Tool version reporting
+- [x] Tool version reporting
 - [ ] Download manager with checksums
 
 ### 0.3 - Android/LG research workbench
@@ -55,7 +55,7 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 - [ ] Release packaging
 
 ## Current implementation
-The repository contains the first functional .NET 8 Windows Forms application, a Core library, and an Android provider. Alpha 0.1 now includes local/PATH ADB discovery, structured file logging, environment diagnostics, and automated Android parser/state tests. CI is configured to build the application and test project and run the tests; it remains unchecked until a successful workflow run is confirmed.
+The repository contains the first functional .NET 8 Windows Forms application, a Core library, and an Android provider. Alpha 0.1 includes local/PATH ADB discovery, structured file logging, environment diagnostics, and automated Android parser/state tests. The 0.2 tooling layer now detects ADB/Fastboot and probes their versions without modifying the host or device. CI is configured to build the application and test project and run the tests; it remains unchecked until a successful workflow run is confirmed.
 
 ## Longer-term research
 - RP2040 multifunction bridge
