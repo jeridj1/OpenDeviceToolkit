@@ -1,0 +1,26 @@
+# Visual Studio / .NET
+.vs/
+**/bin/
+**/obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build output
+publish/
+artifacts/
+
+# Local tooling and secrets
+.env
+*.local.json
+
+# ODT local workspace should never be committed
+Backups/
+Downloads/
+Firmware/
+Drivers/
+Tools/
+Logs/
+Reports/
+Workspace/
