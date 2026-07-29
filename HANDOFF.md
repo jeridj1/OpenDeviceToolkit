@@ -29,22 +29,35 @@ Known from user-provided ADB output:
 
 A complete `getprop` dump was collected by the user as `phone_properties.txt` and stored locally under the user's planned `D:\OpenDeviceToolkit\Reports\` workspace. Do not assume that file is present in the GitHub repository unless the user explicitly commits it.
 
+## Current implementation state
+
+The repository now contains the first functional .NET 8 Windows Forms application and provider layers:
+
+- `OpenDeviceToolkit.Core`: command execution and workspace services.
+- `OpenDeviceToolkit.Android`: ADB discovery, `adb devices` parsing, `getprop` parsing, typed Android device state, and report generation.
+- `OpenDeviceToolkit.App`: light-theme Windows UI that scans automatically at startup and can manually rescan, generate a report, and open the workspace.
+- `.github/workflows/build.yml`: Windows CI restore/build workflow.
+- `scripts/Build-Release.ps1`: self-contained win-x64 single-file publish helper.
+
+The application is intentionally read-only. It does not flash, unlock, erase, or write to the connected phone.
+
 ## Immediate implementation target
 
-Build the first working Windows application in small, testable increments.
+Continue the first milestone in small, testable increments.
 
-### Alpha 0.1
+### Alpha 0.1 remaining work
 
-1. Create a .NET 8 Windows desktop solution.
-2. Establish Core abstractions.
-3. Detect ADB installation/path.
-4. Run `adb devices` and identify authorized Android devices.
-5. Collect safe read-only properties with `adb shell getprop`.
-6. Parse important fields into a typed Android device model.
-7. Display the detected device in a light-theme UI.
-8. Save raw output and a human-readable report to the configured workspace.
-9. Add structured logging.
-10. Add automated tests for parsers and state interpretation.
+1. Add robust ADB path discovery, including the ODT local Tools directory.
+2. Add structured application logging.
+3. Add basic Windows/tool environment diagnostics.
+4. Add automated parser/state tests.
+5. Confirm the Windows CI build succeeds.
+6. Improve report output and capture raw command evidence.
+7. Add explicit device capability/state reporting rather than guesses.
+
+### Next milestone
+
+After 0.1 is stable, begin driver/tool inventory and Android/LG research features. Keep persistent writes out until the read-only diagnostic layer is mature.
 
 ## Important constraints
 
@@ -64,9 +77,10 @@ The user has proposed a broader hardware workbench, including an RP2040-based mu
 Before making changes:
 
 1. Read `README.md`, `ROADMAP.md`, `ARCHITECTURE.md`, this file, and `CHANGELOG.md` if present.
-2. Inspect the current tree and recent commits.
-3. Determine the actual implementation status from source, not from this document alone.
+2. Inspect the actual source tree and recent commits.
+3. Determine implementation status from source, not this document alone.
 4. Update documentation as implementation changes.
 5. Keep commits small enough that a later contributor can understand them.
+6. Run or inspect CI where possible before claiming a build is verified.
 
 When a milestone is completed, update the roadmap and changelog and record any deviations from the planned architecture.
