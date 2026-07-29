@@ -177,9 +177,18 @@ public sealed class MainForm : Form
             var adb = _toolLocator.Find("adb");
             var fastboot = _toolLocator.Find("fastboot");
             var diagnostics = EnvironmentDiagnostics.Collect(_workspace, adb, fastboot);
-            _output.Text = string.Join(Environment.NewLine, diagnostics.Select(d => $"[{(d.Healthy ? "OK" : "CHECK")}] {d.Name}: {d.Value}"));
-            _status.Text = "Status\r\n------\r\nEnvironment diagnostics complete.\r\nSee the output panel for evidence.";
-            _logger.Info("Environment diagnostics completed.");
+            var versions = new[] { ToolVersionProbe.Probe(adb), ToolVersionProbe.Probe(fastboot) };
+
+            var lines = diagnostics.Select(d => $"[{(d.Healthy ? "OK" : "CHECK")}] {d.Name}: {d.Value}").ToList();
+            lines.Add(string.Empty);
+            lines.Add("Tool versions:");
+            lines.AddRange(versions.Select(v => v.Successful
+                ? $"[OK] {v.Name}: {v.Version}"
+                : $"[CHECK] {v.Name}: {v.Error ?? "Version unavailable"}"));
+
+            _output.Text = string.Join(Environment.NewLine, lines);
+            _status.Text = "Status\r\n------\r\nEnvironment diagnostics complete.\r\nTool detection and version probing complete.\r\nSee the output panel for evidence.";
+            _logger.Info("Environment diagnostics and tool version probing completed.");
         }
         catch (Exception ex)
         {
