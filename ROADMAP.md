@@ -1,7 +1,6 @@
 # Open Device Toolkit Roadmap
 
 ## Project goal
-
 Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, documenting, diagnosing, backing up, and eventually interacting with electronic devices. The design favors transparent evidence, reversible operations, and explicit confirmation before writes.
 
 ## Milestones
@@ -14,9 +13,9 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 - [x] Raw property collection
 - [x] Human-readable report generation
 - [x] Workspace management
-- [ ] Structured application logging
-- [ ] Basic environment checks
-- [ ] Automated parser tests
+- [x] Structured application logging
+- [x] Basic environment checks
+- [x] Automated parser tests
 - [ ] CI build verification
 
 ### 0.2 - PC/tooling diagnostics
@@ -56,11 +55,9 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 - [ ] Release packaging
 
 ## Current implementation
-
-The repository now contains the first functional .NET 8 Windows Forms application, a Core library, and an Android provider. The alpha can discover ADB, enumerate Android devices, collect `getprop`, display important state, and write a text report. A Windows GitHub Actions build workflow has also been added; the first workflow run will establish whether the current project builds cleanly on Windows.
+The repository contains the first functional .NET 8 Windows Forms application, a Core library, and an Android provider. Alpha 0.1 now includes local/PATH ADB discovery, structured file logging, environment diagnostics, and automated Android parser/state tests. CI is configured to build the application and test project and run the tests; it remains unchecked until a successful workflow run is confirmed.
 
 ## Longer-term research
-
 - RP2040 multifunction bridge
 - UART, SPI, I2C, SWD, JTAG/CMSIS-DAP and GPIO adapters
 - ESP32/STM32/RP2040 device support
@@ -71,5 +68,4 @@ The repository now contains the first functional .NET 8 Windows Forms applicatio
 These are research goals, not promises of universal automatic identification. Hardware with no readable identity or standard boot protocol may require user input or an adapter-specific probe.
 
 ## Safety rule
-
 Read-only inspection comes first. Any future operation that can alter firmware, boot partitions, calibration data, security state, or other persistent device state must identify the target, explain the risk, verify prerequisites, and require deliberate confirmation.
