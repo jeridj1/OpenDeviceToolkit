@@ -5,8 +5,8 @@ namespace OpenDeviceToolkit.App;
 
 public sealed class MainForm : Form
 {
-    private readonly AdbManager _adb = new(new CommandRunner());
     private readonly Workspace _workspace = new();
+    private readonly AdbManager _adb;
     private readonly AndroidReportWriter _reportWriter = new();
     private readonly Label _status = new();
     private readonly Label _deviceSummary = new();
@@ -16,6 +16,8 @@ public sealed class MainForm : Form
 
     public MainForm()
     {
+        _adb = new AdbManager(new CommandRunner(), workspace: _workspace);
+
         Text = "Open Device Toolkit 0.1 Alpha";
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(820, 600);
@@ -67,7 +69,7 @@ public sealed class MainForm : Form
         _status.AutoSize = false;
         _status.Location = new Point(24, 345);
         _status.Size = new Size(440, 250);
-        _status.Text = "Status\r\n------\r\nReady.\r\n\r\nWorkspace:\r\n" + _workspace.Root;
+        _status.Text = "Status\r\n------\r\nReady.\r\n\r\nADB candidate:\r\n" + _adb.AdbPath + "\r\n\r\nWorkspace:\r\n" + _workspace.Root;
         _status.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
 
         Controls.AddRange([title, subtitle, _scanButton, reportButton, workspaceButton, _deviceSummary, _status, _output]);
@@ -77,15 +79,15 @@ public sealed class MainForm : Form
     private async Task ScanAsync()
     {
         _scanButton.Enabled = false;
-        _status.Text = "Status\r\n------\r\nChecking ADB...";
+        _status.Text = "Status\r\n------\r\nChecking ADB...\r\n\r\nCandidate:\r\n" + _adb.AdbPath;
         try
         {
             _workspace.EnsureDirectories();
             if (!await _adb.IsAvailableAsync())
             {
                 _device = null;
-                _deviceSummary.Text = "ADB was not found.\r\n\r\nInstall Android Platform Tools or place adb.exe on PATH.";
-                _status.Text = "Status\r\n------\r\nADB unavailable.\r\nNo changes were made to the phone.";
+                _deviceSummary.Text = "ADB was not found.\r\n\r\nInstall Android Platform Tools or place adb.exe in the ODT Tools folder or on PATH.";
+                _status.Text = "Status\r\n------\r\nADB unavailable.\r\nNo changes were made to the phone.\r\n\r\nCandidate:\r\n" + _adb.AdbPath;
                 return;
             }
 
@@ -94,7 +96,7 @@ public sealed class MainForm : Form
             {
                 _device = null;
                 _deviceSummary.Text = "No Android device detected.\r\n\r\nConnect the phone with USB debugging enabled.";
-                _status.Text = "Status\r\n------\r\nADB is working.\r\nNo device connected.";
+                _status.Text = "Status\r\n------\r\nADB is working.\r\nNo device connected.\r\n\r\nADB:\r\n" + _adb.AdbPath;
                 return;
             }
 
@@ -103,7 +105,7 @@ public sealed class MainForm : Form
             {
                 _device = null;
                 _deviceSummary.Text = $"Device: {first.Serial}\r\nState: {first.State}";
-                _status.Text = "Status\r\n------\r\nDevice detected, but it is not authorized/online.";
+                _status.Text = "Status\r\n------\r\nDevice detected, but it is not authorized/online.\r\n\r\nADB:\r\n" + _adb.AdbPath;
                 return;
             }
 
@@ -123,7 +125,7 @@ public sealed class MainForm : Form
                                   $"Slot: {_device.Slot}\r\n" +
                                   $"Serial: {_device.Serial}";
             _output.Text = string.Join(Environment.NewLine, _device.Properties.OrderBy(x => x.Key).Select(x => $"[{x.Key}]: [{x.Value}]"));
-            _status.Text = "Status\r\n------\r\nADB: Connected\r\nInspection: Complete\r\nMode: Read-only\r\n\r\n" + _workspace.Root;
+            _status.Text = "Status\r\n------\r\nADB: Connected\r\nInspection: Complete\r\nMode: Read-only\r\n\r\nADB:\r\n" + _adb.AdbPath + "\r\n\r\nWorkspace:\r\n" + _workspace.Root;
         }
         catch (Exception ex)
         {
