@@ -1,4 +1,4 @@
-namespace OpenDeviceToolkit.Core;
+namespace OpenDeviceToolkit.Core.Tools;
 
 public sealed record ToolInfo(string Name, string? Path, bool Found);
 
@@ -8,27 +8,60 @@ public sealed class ToolLocator
 
     public ToolLocator(Workspace workspace) => _workspace = workspace;
 
+    /// <summary>
+    /// Find an executable by name. Prefers workspace Tools directories, then the system PATH.
+    /// On Windows this will try the ".exe" suffix as well.
+    /// </summary>
     public ToolInfo Find(string executableName)
     {
+        if (string.IsNullOrWhiteSpace(executableName))
+            throw new ArgumentException("executableName is required", nameof(executableName));
+
+        // On Windows, consider common executable suffixes.
+        var isWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
+        var candidates = isWindows
+            ? new[] { executableName, executableName + ".exe" }
+            : new[] { executableName };
+
         var localCandidates = new[]
         {
-            Path.Combine(_workspace.Tools, executableName),
-            Path.Combine(_workspace.Tools, "platform-tools", executableName),
-            Path.Combine(_workspace.Tools, "adb", executableName)
+            // top-level Tools\<candidate>
+            () => Path.Combine(_workspace.Tools, candidates[0]),
+            // platform-tools subdir
+            () => Path.Combine(_workspace.Tools, "platform-tools", candidates[0]),
+            // adb subdir
+            () => Path.Combine(_workspace.Tools, "adb", candidates[0])
         };
 
-        foreach (var candidate in localCandidates)
-            if (File.Exists(candidate))
-                return new ToolInfo(executableName, candidate, true);
+        // Check each candidate with optional suffixes
+        foreach (var getPath in localCandidates)
+        {
+            foreach (var candidate in candidates)
+            {
+                var path = getPath().Replace(candidates[0], candidate);
+                try
+                {
+                    if (File.Exists(path))
+                        return new ToolInfo(executableName, path, true);
+                }
+                catch
+                {
+                    // ignore and continue
+                }
+            }
+        }
 
-        var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-        foreach (var directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        foreach (var directory in pathEnv.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
         {
             try
             {
-                var candidate = Path.Combine(directory.Trim(), executableName);
-                if (File.Exists(candidate))
-                    return new ToolInfo(executableName, candidate, true);
+                foreach (var candidate in candidates)
+                {
+                    var candidatePath = Path.Combine(directory.Trim(), candidate);
+                    if (File.Exists(candidatePath))
+                        return new ToolInfo(executableName, candidatePath, true);
+                }
             }
             catch (ArgumentException)
             {
