@@ -75,7 +75,7 @@ public sealed class EnvironmentDiagnostics
             if (!result.Success)
                 return new DiagnosticItem(displayName, DiagnosticStatus.Fail, "Found, but failed to run", result.StandardError.Trim());
 
-            var version = FirstNonEmptyLine(result.StandardOutput);
+            var version = FirstNonEmptyLine(result.StandardOutput + Environment.NewLine + result.StandardError);
             return new DiagnosticItem(displayName, DiagnosticStatus.Pass, version, tool.Path);
         }
         catch (Exception ex)
