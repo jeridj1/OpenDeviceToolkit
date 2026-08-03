@@ -8,8 +8,9 @@ public sealed class MainForm : Form
     private readonly CommandRunner _runner = new();
     private readonly Workspace _workspace = new();
     private readonly ToolLocator _tools;
-    private readonly AdbManager _adb;
+    private AdbManager _adb;
     private readonly EnvironmentDiagnostics _environmentDiagnostics;
+    private readonly AppLogger _logger;
     private readonly AndroidReportWriter _reportWriter = new();
     private readonly Label _status = new();
     private readonly Label _deviceSummary = new();
@@ -21,8 +22,9 @@ public sealed class MainForm : Form
     public MainForm()
     {
         _tools = new ToolLocator(_workspace);
-        _adb = new AdbManager(_runner, _tools.Find("adb").Path);
+        _adb = new AdbManager(_runner);
         _environmentDiagnostics = new EnvironmentDiagnostics(_workspace, _runner);
+        _logger = new AppLogger(_workspace);
 
         Text = "Open Device Toolkit 0.1 Alpha";
         StartPosition = FormStartPosition.CenterScreen;
@@ -101,14 +103,17 @@ public sealed class MainForm : Form
                 _device = null;
                 _deviceSummary.Text = "ADB was not found.\r\n\r\nInstall Android Platform Tools or place adb.exe in the ODT Tools folder or on PATH.";
                 _status.Text = "Status\r\n------\r\nADB unavailable.\r\nNo changes were made to the phone.";
+                _logger.Warning("ADB was not found during device scan.");
                 return;
             }
 
+            _adb = new AdbManager(_runner, adb.Path);
             if (!await _adb.IsAvailableAsync())
             {
                 _device = null;
                 _deviceSummary.Text = "ADB was found but could not be started.\r\n\r\nRun Environment Check for details.";
                 _status.Text = "Status\r\n------\r\nADB execution failed.\r\nNo changes were made to the phone.";
+                _logger.Warning($"ADB was found at '{adb.Path}' but failed its version check.");
                 return;
             }
 
@@ -118,6 +123,7 @@ public sealed class MainForm : Form
                 _device = null;
                 _deviceSummary.Text = "No Android device detected.\r\n\r\nConnect the phone with USB debugging enabled.";
                 _status.Text = "Status\r\n------\r\nADB is working.\r\nNo device connected.";
+                _logger.Info("ADB is available; no Android devices were detected.");
                 return;
             }
 
@@ -127,6 +133,7 @@ public sealed class MainForm : Form
                 _device = null;
                 _deviceSummary.Text = $"Device: {first.Serial}\r\nState: {first.State}";
                 _status.Text = "Status\r\n------\r\nDevice detected, but it is not authorized/online.";
+                _logger.Warning($"Detected device '{first.Serial}' in state {first.State}.");
                 return;
             }
 
@@ -134,6 +141,7 @@ public sealed class MainForm : Form
             if (_device is null)
             {
                 _deviceSummary.Text = "Device was detected, but inspection failed.";
+                _logger.Warning($"Inspection failed for device '{first.Serial}'.");
                 return;
             }
 
@@ -147,10 +155,12 @@ public sealed class MainForm : Form
                                   $"Serial: {_device.Serial}";
             _output.Text = string.Join(Environment.NewLine, _device.Properties.OrderBy(x => x.Key).Select(x => $"[{x.Key}]: [{x.Value}]"));
             _status.Text = "Status\r\n------\r\nADB: Connected\r\nInspection: Complete\r\nMode: Read-only\r\n\r\n" + _workspace.Root;
+            _logger.Info($"Inspected Android device '{_device.Serial}' ({_device.Manufacturer} {_device.Model}).");
         }
         catch (Exception ex)
         {
             _status.Text = $"Status\r\n------\r\nError: {ex.Message}";
+            _logger.Error("Device scan failed.", ex);
         }
         finally
         {
@@ -171,10 +181,12 @@ public sealed class MainForm : Form
             var warnings = results.Count(x => x.Status == DiagnosticStatus.Warning);
             _status.Text = "Status\r\n------\r\nEnvironment check complete.\r\n" +
                            $"Failures: {failures}\r\nWarnings: {warnings}\r\n\r\nWorkspace:\r\n{_workspace.Root}";
+            _logger.Info($"Environment check completed with {failures} failures and {warnings} warnings.");
         }
         catch (Exception ex)
         {
             _status.Text = $"Status\r\n------\r\nEnvironment check failed: {ex.Message}";
+            _logger.Error("Environment check failed.", ex);
         }
         finally
         {
@@ -200,10 +212,12 @@ public sealed class MainForm : Form
         try
         {
             var path = _reportWriter.Write(_workspace, _device);
+            _logger.Info($"Generated Android report '{path}'.");
             MessageBox.Show(this, $"Report saved to:\r\n{path}", "Report created", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {
+            _logger.Error("Could not create Android report.", ex);
             MessageBox.Show(this, ex.Message, "Could not create report", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
@@ -222,6 +236,7 @@ public sealed class MainForm : Form
         }
         catch (Exception ex)
         {
+            _logger.Error("Could not open workspace.", ex);
             MessageBox.Show(this, ex.Message, "Could not open workspace", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
