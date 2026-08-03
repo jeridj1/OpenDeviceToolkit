@@ -1,0 +1,5 @@
+.program odt_capture
+.wrap_target
+    in pins, 1
+    push block
+.wrap
