@@ -29,7 +29,11 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 - [ ] Windows device/driver problem reporting
 
 ### 0.3 - Android/LG research workbench
-- [ ] Partition map inspection
+- [x] Read-only boot/USB state probes
+- [x] Read-only named partition inspection
+- [x] Read-only kernel partition table inspection
+- [x] Read-only filesystem space inspection
+- [ ] Partition map inspection and structured parsing
 - [ ] A/B slot analysis
 - [ ] Boot-chain analysis
 - [ ] LG Download Mode detection
@@ -60,7 +64,7 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 
 ## Current implementation
 
-The alpha now has ADB/Fastboot environment detection, Windows-aware local tool discovery, a visible Environment Check workflow, structured file logging, parser tests, and CI test execution. Android inspection remains read-only and can collect `getprop`, display important state, and write a human-readable report.
+The alpha now has ADB/Fastboot environment detection, Windows-aware local tool discovery, a visible Environment Check workflow, structured file logging, parser tests, CI test execution, and a one-click Deep Read-Only Scan. The deep scan records boot state, USB state, bootloader information, boot reason, named partitions, the kernel partition table, and `/data` filesystem information without issuing persistent-write commands.
 
 ## Longer-term research
 
