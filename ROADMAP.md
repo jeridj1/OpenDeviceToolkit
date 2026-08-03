@@ -14,17 +14,19 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 - [x] Raw property collection
 - [x] Human-readable report generation
 - [x] Workspace management
-- [ ] Structured application logging
-- [ ] Basic environment checks
-- [ ] Automated parser tests
-- [ ] CI build verification
+- [x] Structured application logging
+- [x] Basic environment checks
+- [x] Automated parser tests
+- [x] CI test/build workflow configured
 
 ### 0.2 - PC/tooling diagnostics
 - [ ] Driver inventory
-- [ ] ADB/Fastboot tool detection
+- [x] ADB/Fastboot tool detection
+- [x] Tool version reporting
 - [ ] LG/Qualcomm tool detection
-- [ ] Tool version reporting
 - [ ] Download manager with checksums
+- [ ] USB device inventory
+- [ ] Windows device/driver problem reporting
 
 ### 0.3 - Android/LG research workbench
 - [ ] Partition map inspection
@@ -33,6 +35,7 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 - [ ] LG Download Mode detection
 - [ ] Qualcomm 9008 detection
 - [ ] Device-specific knowledge cards
+- [ ] Evidence-backed diagnostic findings
 
 ### 0.4 - Safe backup and snapshots
 - [ ] Read-only partition metadata
@@ -57,7 +60,7 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 
 ## Current implementation
 
-The repository now contains the first functional .NET 8 Windows Forms application, a Core library, and an Android provider. The alpha can discover ADB, enumerate Android devices, collect `getprop`, display important state, and write a text report. A Windows GitHub Actions build workflow has also been added; the first workflow run will establish whether the current project builds cleanly on Windows.
+The alpha now has ADB/Fastboot environment detection, Windows-aware local tool discovery, a visible Environment Check workflow, structured file logging, parser tests, and CI test execution. Android inspection remains read-only and can collect `getprop`, display important state, and write a human-readable report.
 
 ## Longer-term research
 
