@@ -5,17 +5,25 @@ namespace OpenDeviceToolkit.App;
 
 public sealed class MainForm : Form
 {
-    private readonly AdbManager _adb = new(new CommandRunner());
+    private readonly CommandRunner _runner = new();
     private readonly Workspace _workspace = new();
+    private readonly ToolLocator _tools;
+    private readonly AdbManager _adb;
+    private readonly EnvironmentDiagnostics _environmentDiagnostics;
     private readonly AndroidReportWriter _reportWriter = new();
     private readonly Label _status = new();
     private readonly Label _deviceSummary = new();
     private readonly TextBox _output = new();
     private readonly Button _scanButton = new();
+    private readonly Button _environmentButton = new();
     private AndroidDevice? _device;
 
     public MainForm()
     {
+        _tools = new ToolLocator(_workspace);
+        _adb = new AdbManager(_runner, _tools.Find("adb").Path);
+        _environmentDiagnostics = new EnvironmentDiagnostics(_workspace, _runner);
+
         Text = "Open Device Toolkit 0.1 Alpha";
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(820, 600);
@@ -48,6 +56,11 @@ public sealed class MainForm : Form
         var workspaceButton = new Button { Text = "Open Workspace", AutoSize = true, Location = new Point(295, 95) };
         workspaceButton.Click += (_, _) => OpenWorkspace();
 
+        _environmentButton.Text = "Environment Check";
+        _environmentButton.AutoSize = true;
+        _environmentButton.Location = new Point(440, 95);
+        _environmentButton.Click += async (_, _) => await RunEnvironmentCheckAsync();
+
         _deviceSummary.BorderStyle = BorderStyle.FixedSingle;
         _deviceSummary.AutoSize = false;
         _deviceSummary.Location = new Point(24, 145);
@@ -70,22 +83,32 @@ public sealed class MainForm : Form
         _status.Text = "Status\r\n------\r\nReady.\r\n\r\nWorkspace:\r\n" + _workspace.Root;
         _status.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
 
-        Controls.AddRange([title, subtitle, _scanButton, reportButton, workspaceButton, _deviceSummary, _status, _output]);
+        Controls.AddRange([title, subtitle, _scanButton, reportButton, workspaceButton, _environmentButton, _deviceSummary, _status, _output]);
         Shown += async (_, _) => await ScanAsync();
     }
 
     private async Task ScanAsync()
     {
         _scanButton.Enabled = false;
+        _environmentButton.Enabled = false;
         _status.Text = "Status\r\n------\r\nChecking ADB...";
         try
         {
             _workspace.EnsureDirectories();
+            var adb = _tools.Find("adb");
+            if (!adb.Found || string.IsNullOrWhiteSpace(adb.Path))
+            {
+                _device = null;
+                _deviceSummary.Text = "ADB was not found.\r\n\r\nInstall Android Platform Tools or place adb.exe in the ODT Tools folder or on PATH.";
+                _status.Text = "Status\r\n------\r\nADB unavailable.\r\nNo changes were made to the phone.";
+                return;
+            }
+
             if (!await _adb.IsAvailableAsync())
             {
                 _device = null;
-                _deviceSummary.Text = "ADB was not found.\r\n\r\nInstall Android Platform Tools or place adb.exe on PATH.";
-                _status.Text = "Status\r\n------\r\nADB unavailable.\r\nNo changes were made to the phone.";
+                _deviceSummary.Text = "ADB was found but could not be started.\r\n\r\nRun Environment Check for details.";
+                _status.Text = "Status\r\n------\r\nADB execution failed.\r\nNo changes were made to the phone.";
                 return;
             }
 
@@ -132,7 +155,38 @@ public sealed class MainForm : Form
         finally
         {
             _scanButton.Enabled = true;
+            _environmentButton.Enabled = true;
         }
+    }
+
+    private async Task RunEnvironmentCheckAsync()
+    {
+        _environmentButton.Enabled = false;
+        _scanButton.Enabled = false;
+        try
+        {
+            var results = await _environmentDiagnostics.RunAsync();
+            _output.Text = string.Join(Environment.NewLine, results.Select(FormatDiagnostic));
+            var failures = results.Count(x => x.Status == DiagnosticStatus.Fail);
+            var warnings = results.Count(x => x.Status == DiagnosticStatus.Warning);
+            _status.Text = "Status\r\n------\r\nEnvironment check complete.\r\n" +
+                           $"Failures: {failures}\r\nWarnings: {warnings}\r\n\r\nWorkspace:\r\n{_workspace.Root}";
+        }
+        catch (Exception ex)
+        {
+            _status.Text = $"Status\r\n------\r\nEnvironment check failed: {ex.Message}";
+        }
+        finally
+        {
+            _environmentButton.Enabled = true;
+            _scanButton.Enabled = true;
+        }
+    }
+
+    private static string FormatDiagnostic(DiagnosticItem item)
+    {
+        var evidence = string.IsNullOrWhiteSpace(item.Evidence) ? string.Empty : $"\r\n    Evidence: {item.Evidence}";
+        return $"[{item.Status.ToString().ToUpperInvariant()}] {item.Name}: {item.Value}{evidence}";
     }
 
     private void GenerateReport()
