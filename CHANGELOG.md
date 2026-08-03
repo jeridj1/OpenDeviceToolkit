@@ -5,16 +5,25 @@ All notable changes to Open Device Toolkit are documented here.
 ## Unreleased
 
 ### Added
-- Initial project roadmap.
-- Initial architecture and design principles.
+- Initial project roadmap and architecture documentation.
 - AI/developer handoff documentation.
 - Safety boundary for read-only inspection versus persistent writes.
+- Windows-aware ADB/Fastboot tool discovery from the ODT Tools workspace and PATH.
+- Environment Check UI with OS, architecture, .NET, workspace, ADB, and Fastboot diagnostics.
+- Structured daily application log files under the workspace Logs directory.
+- Automated tests for ADB property parsing and tool discovery.
+- Windows CI test execution in addition to application builds.
 
-### Planned
-- .NET 8 Windows application shell.
-- ADB discovery and Android device inspection.
-- Report generation and structured logging.
-- Automated tests.
+### Improved
+- Device scans now resolve the current ADB executable instead of assuming `adb` is only on PATH.
+- Diagnostic output includes tool paths and command evidence where available.
+- The alpha remains read-only with no flashing, unlocking, erasing, or other persistent device writes.
+
+### Next
+- USB and Windows driver inventory.
+- Qualcomm/LG transport detection.
+- Partition and A/B slot inspection.
+- Evidence-backed diagnostic findings and device knowledge cards.
 
 ## Versioning
 
