@@ -14,7 +14,11 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Restore
+      - name: Restore application
         run: dotnet restore src/OpenDeviceToolkit.App/OpenDeviceToolkit.App.csproj
-      - name: Build
+      - name: Restore tests
+        run: dotnet restore tests/OpenDeviceToolkit.Tests/OpenDeviceToolkit.Tests.csproj
+      - name: Build application
         run: dotnet build src/OpenDeviceToolkit.App/OpenDeviceToolkit.App.csproj --configuration Release --no-restore
+      - name: Run tests
+        run: dotnet test tests/OpenDeviceToolkit.Tests/OpenDeviceToolkit.Tests.csproj --configuration Release --no-restore --verbosity normal
