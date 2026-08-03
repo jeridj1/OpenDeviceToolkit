@@ -13,6 +13,7 @@ public sealed class MainForm : Form
     private readonly AppLogger _logger;
     private readonly AndroidReportWriter _reportWriter = new();
     private readonly AndroidDiagnosticReportWriter _diagnosticReportWriter = new();
+    private readonly AndroidCapabilityPlanner _capabilityPlanner = new();
     private readonly Label _status = new();
     private readonly Label _deviceSummary = new();
     private readonly TextBox _output = new();
@@ -86,10 +87,14 @@ public sealed class MainForm : Form
             _status.Text = "Status\r\n------\r\nRunning read-only Android probes...";
             var diagnostics = await new AndroidDiagnosticService(_adb).RunReadOnlyAsync(_device.Serial);
             var capabilities = new AndroidCapabilityAnalyzer().Analyze(_device);
-            _output.Text = string.Join(Environment.NewLine + Environment.NewLine, capabilities.Select(FormatCapability)) + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine + Environment.NewLine, diagnostics.Select(FormatAndroidDiagnostic));
+            var plan = _capabilityPlanner.Plan(_device);
+            _output.Text = string.Join(Environment.NewLine + Environment.NewLine, capabilities.Select(FormatCapability))
+                + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine + Environment.NewLine, plan.Select(FormatPlan))
+                + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine + Environment.NewLine, diagnostics.Select(FormatAndroidDiagnostic));
             var failed = diagnostics.Count(x => !x.Success); var reportPath = _diagnosticReportWriter.Write(_workspace, _device, diagnostics);
-            _status.Text = "Status\r\n------\r\nDeep scan complete.\r\n" + $"Failed probes: {failed}\r\nCapabilities analyzed: {capabilities.Count}\r\n\r\nReport:\r\n{reportPath}";
-            _logger.Info($"Deep read-only scan completed for '{_device.Serial}' with {failed} failed probes and {capabilities.Count} capability findings.");
+            var ready = plan.Count(x => x.Ready); var writesBlocked = plan.Count(x => x.Risk == OperationRisk.PersistentWrite && !x.Ready);
+            _status.Text = "Status\r\n------\r\nDeep scan complete.\r\n" + $"Failed probes: {failed}\r\nCapabilities analyzed: {capabilities.Count}\r\nNext steps ready: {ready}\r\nPersistent writes blocked: {writesBlocked}\r\n\r\nReport:\r\n{reportPath}";
+            _logger.Info($"Deep read-only scan completed for '{_device.Serial}' with {failed} failed probes, {capabilities.Count} capability findings, and {ready} ready next steps.");
         }
         catch (Exception ex) { _status.Text = $"Status\r\n------\r\nDeep scan failed: {ex.Message}"; _logger.Error("Deep Android scan failed.", ex); }
         finally { SetActionButtons(true); _deepScanButton.Enabled = _device is not null; }
@@ -98,6 +103,7 @@ public sealed class MainForm : Form
     private void SetActionButtons(bool enabled) { _scanButton.Enabled = enabled; _environmentButton.Enabled = enabled; _deepScanButton.Enabled = enabled && _device is not null; }
     private static string FormatDiagnostic(DiagnosticItem item) { var evidence = string.IsNullOrWhiteSpace(item.Evidence) ? string.Empty : $"\r\n    Evidence: {item.Evidence}"; return $"[{item.Status.ToString().ToUpperInvariant()}] {item.Name}: {item.Value}{evidence}"; }
     private static string FormatCapability(AndroidCapability item) => $"[{item.Status.ToString().ToUpperInvariant()}] {item.Name}\r\n    Evidence: {item.Evidence}\r\n    Meaning: {item.Explanation}";
+    private static string FormatPlan(PlannedOperation item) => $"[{(item.Ready ? "READY" : "BLOCKED")}] {item.Name} ({item.Risk})\r\n    Reason: {item.Reason}\r\n    Preconditions: {string.Join("; ", item.Preconditions)}";
     private static string FormatAndroidDiagnostic(AndroidDiagnosticResult item) => $"[{(item.Success ? "PASS" : "FAIL")}] {item.Name} ({item.Duration.TotalMilliseconds:F0} ms)\r\n{item.Output}";
 
     private void GenerateReport()
