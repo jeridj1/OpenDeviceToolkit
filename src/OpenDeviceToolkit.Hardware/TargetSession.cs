@@ -7,13 +7,11 @@ public sealed class TargetSessionController
 {
     private readonly ProbeExecutionPlanner _planner = new();
     private readonly ProtocolDetector _detector = new();
-
     public TargetSessionState Begin(ProbeModeProfile profile, IEnumerable<Rp2040PinAssignment> pins, double? targetVoltage)
     {
         var plan = _planner.Prepare(profile, pins, targetVoltage);
         return new(TargetSessionStage.VoltageChecked, targetVoltage, [], plan.ElectricalState.Reason);
     }
-
     public TargetSessionState Analyze(TargetSessionState state, LogicCapture capture, int bit = 0)
     {
         var hypotheses = _detector.Analyze(capture, bit);
