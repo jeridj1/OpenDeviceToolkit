@@ -35,6 +35,9 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 - [x] Read-only filesystem space inspection
 - [x] Evidence-backed capability analysis
 - [x] Capability and modification workflow documentation
+- [x] Controlled Android reboot operations
+- [x] Explicit ADB file pull/push service
+- [x] Controlled APK installation service
 - [ ] Partition map inspection and structured parsing
 - [ ] A/B slot analysis
 - [ ] Boot-chain analysis
@@ -66,9 +69,9 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 
 ## Current implementation
 
-The alpha now has ADB/Fastboot environment detection, Windows-aware local tool discovery, a visible Environment Check workflow, structured file logging, parser tests, CI test execution, a one-click Deep Read-Only Scan, and evidence-backed capability analysis. Capability analysis deliberately reports Available, Unavailable, Unknown, or RequiresPrivilege rather than pretending that a particular device has a rooting or recovery path when the evidence does not establish one.
+The alpha now has ADB/Fastboot environment detection, Windows-aware local tool discovery, a visible Environment Check workflow, structured file logging, parser tests, CI configuration, a one-click Deep Read-Only Scan, evidence-backed capability analysis, explicit operation gating, Android reboot controls, ADB file transfer, and controlled APK installation. Capability analysis deliberately reports Available, Unavailable, Unknown, or RequiresPrivilege rather than pretending that a particular device has a rooting or recovery path when the evidence does not establish one.
 
-The architecture also documents a separate explicit modification workflow. Read-only reconnaissance may run automatically; persistent changes require a known procedure, verified prerequisites, an identified target and artifact, and deliberate confirmation.
+The architecture separates reconnaissance from modification. Read-only operations may run automatically; persistent changes require a known procedure, verified prerequisites, an identified target and artifact, and deliberate confirmation.
 
 ## Longer-term research
 
