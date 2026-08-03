@@ -10,14 +10,11 @@ public sealed class ProtocolDetector
         var frequency = new LogicCaptureAnalyzer().EstimateFrequency(capture, bit);
         if (frequency is > 1000 and < 100_000_000)
             results.Add(new("clock-like digital signal", .35, $"Detected periodic activity near {frequency:0.##} Hz.", new Dictionary<string, string> { ["frequencyHz"] = frequency.Value.ToString("0.##") }));
-
         var bits = Unpack(capture, bit);
-        var uart = new UartAnalyzer().RankCandidates(bits, capture.SampleRateHz);
-        foreach (var candidate in uart.Take(3))
+        foreach (var candidate in new UartAnalyzer().RankCandidates(bits, capture.SampleRateHz).Take(3))
             results.Add(new("UART", Math.Clamp(candidate.Score, 0, 1), candidate.Evidence, new Dictionary<string, string> { ["baud"] = candidate.BaudRate.ToString(), ["dataBits"] = candidate.DataBits.ToString(), ["stopBits"] = candidate.StopBits.ToString(), ["inverted"] = candidate.Inverted.ToString() }));
         return results.OrderByDescending(x => x.Confidence).ToArray();
     }
-
     private static IReadOnlyList<bool> Unpack(LogicCapture capture, int bit)
     {
         var result = new List<bool>(capture.Words.Count * capture.BitsPerWord);
