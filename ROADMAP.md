@@ -33,13 +33,14 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 - [x] Read-only named partition inspection
 - [x] Read-only kernel partition table inspection
 - [x] Read-only filesystem space inspection
+- [x] Evidence-backed capability analysis
 - [ ] Partition map inspection and structured parsing
 - [ ] A/B slot analysis
 - [ ] Boot-chain analysis
 - [ ] LG Download Mode detection
 - [ ] Qualcomm 9008 detection
 - [ ] Device-specific knowledge cards
-- [ ] Evidence-backed diagnostic findings
+- [ ] Structured diagnostic findings
 
 ### 0.4 - Safe backup and snapshots
 - [ ] Read-only partition metadata
@@ -64,18 +65,21 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 
 ## Current implementation
 
-The alpha now has ADB/Fastboot environment detection, Windows-aware local tool discovery, a visible Environment Check workflow, structured file logging, parser tests, CI test execution, and a one-click Deep Read-Only Scan. The deep scan records boot state, USB state, bootloader information, boot reason, named partitions, the kernel partition table, and `/data` filesystem information without issuing persistent-write commands.
+The alpha now has ADB/Fastboot environment detection, Windows-aware local tool discovery, a visible Environment Check workflow, structured file logging, parser tests, CI test execution, a one-click Deep Read-Only Scan, and evidence-backed capability analysis. Capability analysis deliberately reports Available, Unavailable, Unknown, or RequiresPrivilege rather than pretending that a particular device has a rooting or recovery path when the evidence does not establish one.
 
 ## Longer-term research
 
+- Device-specific knowledge cards and firmware/build matching
+- Recovery and boot-mode detection
+- Qualcomm/LG low-level transport research
+- Firmware identification and backup
 - RP2040 multifunction bridge
 - UART, SPI, I2C, SWD, JTAG/CMSIS-DAP and GPIO adapters
 - ESP32/STM32/RP2040 device support
 - Serial-console tooling
-- Firmware identification and backup
 - Hardware probing and protocol discovery
 
-These are research goals, not promises of universal automatic identification. Hardware with no readable identity or standard boot protocol may require user input or an adapter-specific probe.
+These are research goals, not promises of universal automatic identification. Devices with no readable identity or standard protocol may require user guidance or specialized hardware.
 
 ## Safety rule
 
