@@ -13,6 +13,8 @@ All notable changes to Open Device Toolkit are documented here.
 - Structured daily application log files under the workspace Logs directory.
 - Automated tests for ADB property parsing and tool discovery.
 - Windows CI test execution in addition to application builds.
+- One-click Deep Read-Only Scan for Android boot, USB, partition, and filesystem diagnostics.
+- Dedicated diagnostic reports containing raw probe evidence and execution timing.
 
 ### Improved
 - Device scans now resolve the current ADB executable instead of assuming `adb` is only on PATH.
@@ -22,7 +24,7 @@ All notable changes to Open Device Toolkit are documented here.
 ### Next
 - USB and Windows driver inventory.
 - Qualcomm/LG transport detection.
-- Partition and A/B slot inspection.
+- Structured partition and A/B slot analysis.
 - Evidence-backed diagnostic findings and device knowledge cards.
 
 ## Versioning
