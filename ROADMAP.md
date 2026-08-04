@@ -60,6 +60,20 @@ Open Device Toolkit (ODT) is a Windows workbench for identifying, inspecting, do
 - [ ] Qualcomm provider
 - [ ] External plugin loading
 
+### 0.6 - Experimental Research Engine
+- [ ] Research-session model and persistent experiment history
+- [ ] Automatic hardware/interface fingerprinting
+- [ ] Progressive passive-to-active probing workflow
+- [ ] Automatic protocol hypothesis generation
+- [ ] UART/SPI/I2C/JTAG/SWD research workflows
+- [ ] Device-specific research plans and knowledge cards
+- [ ] Unconventional/undocumented capability research
+- [ ] Evidence-backed hypothesis ranking and deduplication
+- [ ] AI-friendly research reports and continuation handoff
+- [ ] Explicit escalation gates for persistent or destructive operations
+
+The detailed design is documented in `docs/EXPERIMENTAL_RESEARCH_ENGINE.md`.
+
 ### 1.0 - Stable workbench
 - [ ] Polished UI
 - [ ] Documentation
@@ -84,9 +98,15 @@ The architecture separates reconnaissance from modification. Read-only operation
 - ESP32/STM32/RP2040 device support
 - Serial-console tooling
 - Hardware probing and protocol discovery
+- Experimental research of undocumented or unconventional device capabilities
+- Progressive hypothesis-driven research when no documented procedure exists
 
 These are research goals, not promises of universal automatic identification. Devices with no readable identity or standard protocol may require user guidance or specialized hardware.
 
 ## Safety rule
 
 Read-only inspection comes first. Any future operation that can alter firmware, boot partitions, calibration data, security state, or other persistent device state must identify the target, explain the risk, verify prerequisites, and require deliberate confirmation.
+
+## Project continuity rule
+
+The repository is the authoritative project state. Important requirements, architectural decisions, research goals, implementation status, and handoff information must be recorded in repository documentation rather than relying on private conversation history. Future developers or AI agents should read `ROADMAP.md`, `ARCHITECTURE.md`, `docs/EXPERIMENTAL_RESEARCH_ENGINE.md`, relevant source code, tests, and changelog before continuing work.
