@@ -1,0 +1,35 @@
+name: .NET Build and Publish
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Publish App
+      run: dotnet publish src/OpenDeviceToolkit.App --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o ./publish
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: OpenDeviceToolkit-Windows
+        path: ./publish/
