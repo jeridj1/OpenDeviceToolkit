@@ -10,8 +10,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7558}") = "OpenDeviceToolkit.Hardware"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7559}") = "OpenDeviceToolkit.App", "src\OpenDeviceToolkit.App\OpenDeviceToolkit.App.csproj", "{9A19103F-16F7-4668-BE54-9A1E7A4F7559}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7560}") = "OpenDeviceToolkit.ConsoleTest", "src\OpenDeviceToolkit.ConsoleTest\OpenDeviceToolkit.ConsoleTest.csproj", "{9A19103F-16F7-4668-BE54-9A1E7A4F7560}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,15 +32,8 @@ Global
 		{9A19103F-16F7-4668-BE54-9A1E7A4F7559}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A19103F-16F7-4668-BE54-9A1E7A4F7559}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9A19103F-16F7-4668-BE54-9A1E7A4F7559}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9A19103F-16F7-4668-BE54-9A1E7A4F7560}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9A19103F-16F7-4668-BE54-9A1E7A4F7560}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9A19103F-16F7-4668-BE54-9A1E7A4F7560}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9A19103F-16F7-4668-BE54-9A1E7A4F7560}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {9A19103F-16F7-4668-BE54-9A1E7A4F7561}
 	EndGlobalSection
 EndGlobal
