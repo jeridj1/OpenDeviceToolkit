@@ -1,0 +1,48 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32526.200
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenDeviceToolkit.Core", "src\OpenDeviceToolkit.Core\OpenDeviceToolkit.Core.csproj", "{9A19103F-16F7-4668-BE54-9A1E7A4F7556}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7557}") = "OpenDeviceToolkit.Android", "src\OpenDeviceToolkit.Android\OpenDeviceToolkit.Android.csproj", "{9A19103F-16F7-4668-BE54-9A1E7A4F7557}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7558}") = "OpenDeviceToolkit.Hardware", "src\OpenDeviceToolkit.Hardware\OpenDeviceToolkit.Hardware.csproj", "{9A19103F-16F7-4668-BE54-9A1E7A4F7558}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7559}") = "OpenDeviceToolkit.App", "src\OpenDeviceToolkit.App\OpenDeviceToolkit.App.csproj", "{9A19103F-16F7-4668-BE54-9A1E7A4F7559}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7560}") = "OpenDeviceToolkit.ConsoleTest", "src\OpenDeviceToolkit.ConsoleTest\OpenDeviceToolkit.ConsoleTest.csproj", "{9A19103F-16F7-4668-BE54-9A1E7A4F7560}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7556}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7556}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7556}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7556}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7557}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7557}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7557}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7557}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7558}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7558}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7558}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7558}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7559}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7559}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7559}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7559}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7560}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7560}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7560}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7560}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9A19103F-16F7-4668-BE54-9A1E7A4F7561}
+	EndGlobalSection
+EndGlobal
