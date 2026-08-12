@@ -17,12 +17,14 @@ public sealed class EnvironmentDiagnostics
     private readonly Workspace _workspace;
     private readonly ToolLocator _tools;
     private readonly CommandRunner _runner;
+    private readonly UsbDeviceEnumerator? _usbEnumerator;
 
-    public EnvironmentDiagnostics(Workspace workspace, CommandRunner runner)
+    public EnvironmentDiagnostics(Workspace workspace, CommandRunner runner, UsbDeviceEnumerator? usbEnumerator = null)
     {
         _workspace = workspace;
         _tools = new ToolLocator(workspace);
         _runner = runner;
+        _usbEnumerator = usbEnumerator ?? (OperatingSystem.IsWindows() ? new UsbDeviceEnumerator() : null);
     }
 
     public async Task<IReadOnlyList<DiagnosticItem>> RunAsync(CancellationToken cancellationToken = default)
@@ -38,8 +40,25 @@ public sealed class EnvironmentDiagnostics
 
         _workspace.EnsureDirectories();
         results.Add(CheckWorkspace());
+        
+        // Check ADB and Fastboot
         results.Add(await CheckToolAsync("ADB", "adb", "version", cancellationToken));
         results.Add(await CheckToolAsync("Fastboot", "fastboot", "--version", cancellationToken));
+        
+        // Check for other common Android tools
+        results.Add(await CheckToolAsync("Fastboot", "fastboot", "--version", cancellationToken));
+        
+        // USB device inventory (Windows only)
+        if (_usbEnumerator != null)
+        {
+            results.Add(_usbEnumerator.GetUsbInventorySummary());
+            results.Add(CheckAndroidDevices());
+        }
+        else if (!OperatingSystem.IsWindows())
+        {
+            results.Add(new DiagnosticItem("USB Device Inventory", DiagnosticStatus.Warning, 
+                "USB enumeration is only supported on Windows"));
+        }
 
         return results;
     }
@@ -56,6 +75,34 @@ public sealed class EnvironmentDiagnostics
         catch (Exception ex)
         {
             return new DiagnosticItem("Workspace", DiagnosticStatus.Fail, _workspace.Root, ex.Message);
+        }
+    }
+
+    private DiagnosticItem CheckAndroidDevices()
+    {
+        if (_usbEnumerator == null)
+        {
+            return new DiagnosticItem("Android Devices", DiagnosticStatus.Unknown, "USB enumerator not available");
+        }
+
+        try
+        {
+            var androidDevices = _usbEnumerator.GetAndroidDevices();
+            if (androidDevices.Count == 0)
+            {
+                return new DiagnosticItem("Android Devices", DiagnosticStatus.Warning, 
+                    "No Android devices detected via USB");
+            }
+
+            var deviceNames = string.Join(", ", androidDevices.Select(d => 
+                !string.IsNullOrWhiteSpace(d.Name) ? d.Name : d.VidPid));
+            return new DiagnosticItem("Android Devices", DiagnosticStatus.Pass, 
+                $"{androidDevices.Count} device(s): {deviceNames}");
+        }
+        catch (Exception ex)
+        {
+            return new DiagnosticItem("Android Devices", DiagnosticStatus.Fail, 
+                "Error detecting Android devices", ex.Message);
         }
     }
 
