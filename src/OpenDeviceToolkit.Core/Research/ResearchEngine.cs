@@ -13,37 +13,19 @@ public sealed class ResearchEngine : IDisposable
     private readonly CommandRunner _commandRunner;
     private ResearchSession? _currentSession;
     
-    /// <summary>
-    /// Initializes a new research engine.
-    /// </summary>
     public ResearchEngine(Workspace workspace, AppLogger logger, CommandRunner commandRunner)
     {
         _workspace = workspace;
         _logger = logger;
         _commandRunner = commandRunner;
-        
-        // Add default research sources
         _sources.Add(new GitHubSearch(new HttpClient(), logger));
     }
     
-    /// <summary>
-    /// Gets the current active research session.
-    /// </summary>
     public ResearchSession? CurrentSession => _currentSession;
     
-    /// <summary>
-    /// Adds a research source to the engine.
-    /// </summary>
     public void AddSource(IResearchSource source) => _sources.Add(source);
-    
-    /// <summary>
-    /// Removes a research source from the engine.
-    /// </summary>
     public bool RemoveSource(IResearchSource source) => _sources.Remove(source);
     
-    /// <summary>
-    /// Starts a new research session for a device.
-    /// </summary>
     public ResearchSession StartSession(string deviceId, string objective)
     {
         _currentSession?.Dispose();
@@ -52,9 +34,6 @@ public sealed class ResearchEngine : IDisposable
         return _currentSession;
     }
     
-    /// <summary>
-    /// Ends the current research session.
-    /// </summary>
     public void EndSession(ResearchStatus status = ResearchStatus.Completed)
     {
         if (_currentSession != null)
@@ -66,17 +45,12 @@ public sealed class ResearchEngine : IDisposable
         }
     }
     
-    /// <summary>
-    /// Searches all sources for information about a device or query.
-    /// </summary>
     public async Task<IReadOnlyList<ResearchResult>> SearchAsync(
         string query,
         Usb.UsbDeviceInfo? deviceInfo = null,
         CancellationToken cancellationToken = default)
     {
         var allResults = new List<ResearchResult>();
-        
-        // Sort sources by priority
         var sortedSources = _sources.OrderByDescending(s => s.Priority);
         
         foreach (var source in sortedSources)
@@ -103,13 +77,9 @@ public sealed class ResearchEngine : IDisposable
             }
         }
         
-        // Sort results by confidence
         return allResults.OrderByDescending(r => r.Confidence).ToList().AsReadOnly();
     }
     
-    /// <summary>
-    /// Generates hypotheses from research results.
-    /// </summary>
     public IReadOnlyList<ResearchHypothesis> GenerateHypotheses(
         IReadOnlyList<ResearchResult> results,
         Usb.UsbDeviceInfo? deviceInfo = null)
@@ -119,57 +89,31 @@ public sealed class ResearchEngine : IDisposable
         foreach (var result in results)
         {
             var evidence = new List<string> { $"Source: {result.Source}", $"URL: {result.Url}" };
-            
             if (!string.IsNullOrEmpty(result.Snippet))
                 evidence.Add($"Snippet: {result.Snippet[..Math.Min(result.Snippet.Length, 100)]}...");
-            
             if (deviceInfo != null)
             {
                 evidence.Add($"Device: {deviceInfo.DisplayName}");
                 if (!string.IsNullOrEmpty(deviceInfo.VidPid))
                     evidence.Add($"VID/PID: {deviceInfo.VidPid}");
             }
-            
-            hypotheses.Add(new ResearchHypothesis(
-                result.Title,
-                result.EstimatedRisk,
-                result.Confidence,
-                evidence
-            ));
+            hypotheses.Add(new ResearchHypothesis(result.Title, result.EstimatedRisk, result.Confidence, evidence));
         }
         
         return hypotheses;
     }
     
-    /// <summary>
-    /// Creates a research plan from hypotheses.
-    /// </summary>
-    public ResearchPlan CreatePlan(
-        string deviceId,
-        string objective,
-        IReadOnlyList<ResearchHypothesis> hypotheses)
+    public ResearchPlan CreatePlan(string deviceId, string objective, IReadOnlyList<ResearchHypothesis> hypotheses)
     {
         var plan = new ResearchPlan(deviceId, objective);
-        
         foreach (var hypothesis in hypotheses.OrderByDescending(h => h.Confidence))
         {
-            plan.AddStep(new ResearchStep(
-                $"Test: {hypothesis.Description}",
-                hypothesis.Risk,
-                hypothesis.Evidence
-            ));
+            plan.AddStep(new ResearchStep($"Test: {hypothesis.Description}", hypothesis.Risk, hypothesis.Evidence));
         }
-        
         return plan;
     }
     
-    /// <summary>
-    /// Executes the next step in the current research plan.
-    /// </summary>
-    public async Task<bool> ExecuteNextStepAsync(
-        ResearchPlan plan,
-        bool autoConfirmSafe = true,
-        CancellationToken cancellationToken = default)
+    public async Task<bool> ExecuteNextStepAsync(ResearchPlan plan, bool autoConfirmSafe = true, CancellationToken cancellationToken = default)
     {
         if (plan.IsComplete)
             return false;
@@ -178,27 +122,19 @@ public sealed class ResearchEngine : IDisposable
         if (step == null)
             return false;
         
-        // Check if confirmation is needed
         if (step.RequiresConfirmation && !autoConfirmSafe)
         {
             _logger.Info($"Step requires confirmation: {step.Description}");
             return false;
         }
         
-        // Execute the step
         plan.Advance();
         var currentStep = plan.CurrentStep!;
         
         try
         {
-            // For now, just log the execution
-            // TODO: Implement actual command execution based on step type
             _logger.Info($"Executing step: {currentStep.Description} (Risk: {currentStep.Risk})");
-            
-            // Simulate execution
             await Task.Delay(100, cancellationToken);
-            
-            // Mark as successful for now
             plan.CompleteCurrentStep(true, "Step executed successfully");
             return true;
         }
@@ -210,33 +146,17 @@ public sealed class ResearchEngine : IDisposable
         }
     }
     
-    /// <summary>
-    /// Runs a complete research workflow: search -> generate hypotheses -> create plan -> execute.
-    /// </summary>
-    public async Task<ResearchPlan> RunWorkflowAsync(
-        string deviceId,
-        string objective,
-        Usb.UsbDeviceInfo? deviceInfo = null,
-        bool autoExecute = false,
-        CancellationToken cancellationToken = default)
+    public async Task<ResearchPlan> RunWorkflowAsync(string deviceId, string objective, Usb.UsbDeviceInfo? deviceInfo = null, bool autoExecute = false, CancellationToken cancellationToken = default)
     {
-        // Start session
         var session = StartSession(deviceId, objective);
-        
-        // Search for information
         _logger.Info($"Searching for: {objective}");
         var results = await SearchAsync(objective, deviceInfo, cancellationToken);
         session.AddResults(results);
-        
-        // Generate hypotheses
         var hypotheses = GenerateHypotheses(results, deviceInfo);
         foreach (var hyp in hypotheses)
             session.AddHypothesis(hyp);
-        
-        // Create plan
         var plan = CreatePlan(deviceId, objective, hypotheses);
         
-        // Optionally execute
         if (autoExecute)
         {
             while (!plan.IsComplete && !cancellationToken.IsCancellationRequested)
