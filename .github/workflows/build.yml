@@ -10,15 +10,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Restore application
-        run: dotnet restore src/OpenDeviceToolkit.App/OpenDeviceToolkit.App.csproj
-      - name: Restore tests
-        run: dotnet restore tests/OpenDeviceToolkit.Tests/OpenDeviceToolkit.Tests.csproj
-      - name: Build application
+          
+      - name: Restore dependencies
+        run: dotnet restore
+        
+      - name: Build Core
+        run: dotnet build src/OpenDeviceToolkit.Core/OpenDeviceToolkit.Core.csproj --configuration Release --no-restore
+        
+      - name: Build Android
+        run: dotnet build src/OpenDeviceToolkit.Android/OpenDeviceToolkit.Android.csproj --configuration Release --no-restore
+        
+      - name: Build Hardware
+        run: dotnet build src/OpenDeviceToolkit.Hardware/OpenDeviceToolkit.Hardware.csproj --configuration Release --no-restore
+        
+      - name: Build App
         run: dotnet build src/OpenDeviceToolkit.App/OpenDeviceToolkit.App.csproj --configuration Release --no-restore
+        
       - name: Run tests
         run: dotnet test tests/OpenDeviceToolkit.Tests/OpenDeviceToolkit.Tests.csproj --configuration Release --no-restore --verbosity normal
