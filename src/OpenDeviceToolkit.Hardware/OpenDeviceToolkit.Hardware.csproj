@@ -6,14 +6,6 @@
     <Nullable>enable</Nullable>
     <WarningsAsErrors>true</WarningsAsErrors>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <Company>OpenDeviceToolkit</Company>
-    <Copyright>Copyright © 2026</Copyright>
-    <Version>0.1.0</Version>
   </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\OpenDeviceToolkit.Core\OpenDeviceToolkit.Core.csproj" />
-    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
-  </ItemGroup>
 
 </Project>
