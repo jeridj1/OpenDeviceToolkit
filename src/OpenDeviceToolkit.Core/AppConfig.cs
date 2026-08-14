@@ -10,6 +10,11 @@ public sealed class WorkspaceConfig
 {
     [JsonPropertyName("rootPath")]
     public string RootPath { get; set; } = "D:\\OpenDeviceToolkit";
+    
+    /// <summary>
+    /// Converts this configuration to a Workspace instance.
+    /// </summary>
+    public Workspace ToWorkspace() => new Workspace(RootPath);
 }
 
 /// <summary>
