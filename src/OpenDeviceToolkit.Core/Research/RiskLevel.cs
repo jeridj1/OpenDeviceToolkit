@@ -60,7 +60,7 @@ public static class RiskLevelExtensions
     public static string GetColor(this RiskLevel level) => level switch
     {
         RiskLevel.ReadOnly => "Green",
-        RiskLevel.Reversible => "Blue",
+        RiskLevel.Reversible => "Blue", 
         RiskLevel.PersistentWrite => "Orange",
         RiskLevel.PotentialBrick => "Red",
         RiskLevel.EWasteMode => "DarkRed",
