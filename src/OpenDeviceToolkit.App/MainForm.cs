@@ -42,8 +42,7 @@ public sealed class MainForm : Form
     private readonly Button _voiceSendButton = new();
     
     private AndroidDevice? _device;
-    private ResearchSession? _currentResearchSession;
-    private ResearchPlan? _currentResearchPlan;
+    private bool _eWasteMode = false;
     
     public MainForm()
     {
@@ -56,9 +55,9 @@ public sealed class MainForm : Form
         _speechService = new SpeechService(_logger);
         _rp2040Controller = Rp2040ControllerFactory.GetController();
         
-        _speechService.IsEnabled = false;
-        _speechService.Rate = 0;
-        _speechService.Volume = 100;
+        _speechService.IsEnabled = Config.Current.Voice.Enabled;
+        _speechService.Rate = Config.Current.Voice.Rate;
+        _speechService.Volume = Config.Current.Voice.Volume;
         _speechService.TextRecognized += OnTextRecognized;
         _speechService.ListeningStarted += () => UpdateVoiceStatus();
         _speechService.ListeningStopped += () => UpdateVoiceStatus();
@@ -87,7 +86,7 @@ public sealed class MainForm : Form
         _voiceToggleButton.Text = "Voice (OFF)"; _voiceToggleButton.AutoSize = true; _voiceToggleButton.Location = new Point(24, 130); _voiceToggleButton.Click += (_, _) => ToggleVoiceMode();
         _researchButton.Text = "Research Device"; _researchButton.AutoSize = true; _researchButton.Location = new Point(150, 130); _researchButton.Click += async (_, _) => await StartResearchAsync();
         _rp2040Button.Text = "RP2040 Bridge"; _rp2040Button.AutoSize = true; _rp2040Button.Location = new Point(295, 130); _rp2040Button.Click += async (_, _) => await ShowRp2040DialogAsync();
-        _eWasteModeCheckBox.Text = "E-Waste Mode"; _eWasteModeCheckBox.AutoSize = true; _eWasteModeCheckBox.Location = new Point(440, 132); _eWasteModeCheckBox.ToolTipText = "Enable to allow irreversible experiments (device may be bricked)"; _eWasteModeCheckBox.CheckedChanged += (_, _) => { _eWasteMode = _eWasteModeCheckBox.Checked; UpdateEwasteMode(); };
+        _eWasteModeCheckBox.Text = "E-Waste Mode"; _eWasteModeCheckBox.AutoSize = true; _eWasteModeCheckBox.Location = new Point(440, 132); _eWasteModeCheckBox.ToolTipText = "Enable to allow irreversible experiments"; _eWasteModeCheckBox.CheckedChanged += (_, _) => { _eWasteMode = _eWasteModeCheckBox.Checked; UpdateEwasteMode(); };
 
         _rebootButton.Text = "Reboot"; _rebootButton.AutoSize = true; _rebootButton.Location = new Point(24, 335); _rebootButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootSystem);
         _bootloaderButton.Text = "Reboot Bootloader"; _bootloaderButton.AutoSize = true; _bootloaderButton.Location = new Point(110, 335); _bootloaderButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootBootloader);
@@ -112,8 +111,7 @@ public sealed class MainForm : Form
         Shown += async (_, _) => await ScanAsync();
     }
 
-    // ========== VOICE INTERACTION ==========
-
+    // VOICE INTERACTION
     private void ToggleVoiceMode()
     {
         if (_speechService.IsEnabled)
@@ -135,411 +133,171 @@ public sealed class MainForm : Form
         UpdateVoiceStatus();
     }
 
-    private void OnTextRecognized(string text)
-    {
-        BeginInvoke(() =>
-        {
-            _voiceInput.Text = text;
-            ProcessVoiceInput();
-        });
-    }
+    private void OnTextRecognized(string text) => BeginInvoke(() => { _voiceInput.Text = text; ProcessVoiceInput(); });
 
     private void ProcessVoiceInput()
     {
         var text = _voiceInput.Text.Trim();
-        if (string.IsNullOrEmpty(text))
-            return;
-
+        if (string.IsNullOrEmpty(text)) return;
         _logger.Info($"Voice input: {text}");
         _voiceInput.Clear();
-
         var command = VoiceCommandParser.Parse(text);
-
         switch (command.Type)
         {
-            case VoiceCommandType.ScanDevice:
-                Speak("Scanning for devices");
-                _ = ScanAsync();
-                break;
-            case VoiceCommandType.GainAccess:
-                Speak("Starting access research");
-                _ = StartResearchAsync();
-                break;
-            case VoiceCommandType.GenerateReport:
-                Speak("Generating report");
-                GenerateReport();
-                break;
-            case VoiceCommandType.RebootDevice:
-                Speak("Please confirm reboot on screen");
-                _ = RunOperationAsync(AndroidOperationKind.RebootSystem);
-                break;
-            case VoiceCommandType.Help:
-                Speak("You can say: scan device, gain access, generate report, reboot device, or describe your objective");
-                break;
-            case VoiceCommandType.Exit:
-                Speak("Goodbye");
-                Close();
-                break;
-            case VoiceCommandType.CustomObjective:
-            case VoiceCommandType.Unknown:
-                if (!string.IsNullOrEmpty(command.Objective))
-                {
-                    Speak($"Starting research for: {command.Objective}");
-                    _ = StartResearchAsync(command.Objective);
-                }
-                break;
+            case VoiceCommandType.ScanDevice: Speak("Scanning"); _ = ScanAsync(); break;
+            case VoiceCommandType.GainAccess: Speak("Researching access"); _ = StartResearchAsync(); break;
+            case VoiceCommandType.GenerateReport: Speak("Generating report"); GenerateReport(); break;
+            case VoiceCommandType.RebootDevice: Speak("Confirm on screen"); _ = RunOperationAsync(AndroidOperationKind.RebootSystem); break;
+            case VoiceCommandType.Help: Speak("Say: scan, gain access, report, reboot, or describe your goal"); break;
+            case VoiceCommandType.Exit: Speak("Goodbye"); Close(); break;
+            default: if (!string.IsNullOrEmpty(command.Objective)) { Speak($"Researching: {command.Objective}"); _ = StartResearchAsync(command.Objective); } break;
         }
     }
 
-    private void Speak(string text)
+    private void Speak(string text) { if (_speechService.IsEnabled) _speechService.Speak(text); }
+    private void UpdateVoiceStatus() { var s = _speechService.IsListening ? "Listening..." : _speechService.IsSpeaking ? "Speaking..." : "Ready"; _voiceToggleButton.Text = _speechService.IsEnabled ? $"Voice ({s})" : "Voice (OFF)"; }
+    private void UpdateEwasteMode() { _eWasteModeCheckBox.ForeColor = _eWasteMode ? Color.Red : SystemColors.ControlText; }
+
+    // RESEARCH ENGINE
+    private async Task StartResearchAsync(string? objective = null)
     {
-        if (_speechService.IsEnabled)
-            _speechService.Speak(text);
-    }
-
-    private void UpdateVoiceStatus()
-    {
-        var status = _speechService.IsListening ? "Listening..." : "Ready";
-        if (_speechService.IsSpeaking) status = "Speaking...";
-        _voiceToggleButton.Text = _speechService.IsEnabled ? $"Voice ({status})" : "Voice (OFF)";
-    }
-
-    private void UpdateEwasteMode()
-    {
-        var color = _eWasteMode ? Color.Red : SystemColors.ControlText;
-        _eWasteModeCheckBox.ForeColor = color;
-    }
-
-    // ========== RESEARCH ENGINE ==========
-
-    private async Task StartResearchAsync(string? customObjective = null)
-    {
-        if (_device == null)
-        {
-            Speak("Please connect and detect a device first");
-            MessageBox.Show(this, "Please connect and detect a device first.", "No Device", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            return;
-        }
-
-        SetActionButtons(false);
-        _status.Text = "Status\r\n------\r\nStarting research...\r\n";
-        _output.Text = "";
-
+        if (_device == null) { Speak("Connect device first"); MessageBox.Show(this, "Please connect and detect a device first.", "No Device", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+        SetActionButtons(false); _status.Text = "Status\r\n------\r\nStarting research...\r\n"; _output.Text = "";
         try
         {
-            var objective = customObjective ?? $"Gain full access to {_device.Manufacturer} {_device.Model}";
-            
-            _currentResearchSession = _researchEngine.StartSession(_device.Serial, objective);
-            
-            _status.Text += "Searching for exploits and methods...\r\n";
-            Speak("Searching for device information and access methods");
-            
+            objective ??= $"Gain full access to {_device.Manufacturer} {_device.Model}";
+            var session = _researchEngine.StartSession(_device.Serial, objective);
+            _status.Text += "Searching for methods...\r\n"; Speak("Searching for access methods");
             var results = await _researchEngine.SearchAsync(objective, CancellationToken.None);
-            
-            foreach (var result in results)
-            {
-                _output.Text += $"[RESEARCH] {result.Display}\r\nURL: {result.Url}\r\n\r\n";
-            }
-            
+            foreach (var r in results) _output.Text += $"[RESEARCH] {r.Display}\r\n{r.Url}\r\n\r\n";
             var hypotheses = _researchEngine.GenerateHypotheses(results);
-            _currentResearchPlan = _researchEngine.CreatePlan(_device.Serial, objective, hypotheses);
-            
-            _status.Text += $"\r\nFound {results.Count} results, {hypotheses.Count} hypotheses.\r\n";
-            _status.Text += _eWasteMode ? "\r\nE-WASTE MODE: Irreversible experiments allowed!" : "\r\nSafe mode: Only reversible operations allowed.";
-            
-            Speak($"Research complete. Found {hypotheses.Count} potential methods. Review results and click appropriate action buttons.");
+            var plan = _researchEngine.CreatePlan(_device.Serial, objective, hypotheses);
+            _status.Text += $"\r\nFound {results.Count} results, {hypotheses.Count} hypotheses.\r\n" + (_eWasteMode ? "E-WASTE MODE ACTIVE!" : "Safe mode");
+            Speak($"Found {hypotheses.Count} potential methods");
         }
-        catch (Exception ex)
-        {
-            _status.Text = $"Status\r\n------\r\nResearch failed: {ex.Message}";
-            _logger.Error("Research failed", ex);
-            Speak("Research failed");
-        }
-        finally
-        {
-            SetActionButtons(true);
-        }
+        catch (Exception ex) { _status.Text = $"Research failed: {ex.Message}"; _logger.Error("Research failed", ex); Speak("Research failed"); }
+        finally { SetActionButtons(true); }
     }
 
-    // ========== RP2040 BRIDGE ==========
-
+    // RP2040 BRIDGE
     private async Task ShowRp2040DialogAsync()
     {
         try
         {
-            _status.Text = "Status\r\n------\r\nConnecting to RP2040...\r\n";
-            Speak("Connecting to RP2040 bridge");
-            
+            _status.Text = "Connecting to RP2040...\r\n"; Speak("Connecting to RP2040");
             var connected = await _rp2040Controller.ConnectAsync();
-            if (!connected)
-            {
-                _status.Text += "Failed to connect to RP2040\r\n";
-                Speak("RP2040 not found");
-                return;
-            }
-            
-            _status.Text += "RP2040 connected!\r\n";
-            Speak("RP2040 connected successfully");
-            
+            if (!connected) { _status.Text += "RP2040 not found\r\n"; Speak("Not found"); return; }
+            _status.Text += "Connected!\r\n"; Speak("Connected");
             var modes = string.Join(", ", _rp2040Controller.AvailableModes);
-            _output.Text = $"RP2040 Bridge\r\n================\r\nConnected: {_rp2040Controller.IsConnected}\r\nCurrent Mode: {_rp2040Controller.CurrentMode}\r\nAvailable Modes: {modes}\r\n\r\n";
-            
-            var pinouts = PinoutDatabase.GetChipIdentifiers();
-            _output.Text += "Known Chip Pinouts:\r\n";
-            foreach (var chip in pinouts.Take(20))
-            {
-                _output.Text += $"  - {chip}\r\n";
-            }
-            
-            Speak($"RP2040 ready. {_rp2040Controller.AvailableModes.Count} modes available.");
+            _output.Text = $"RP2040 Bridge\r\nConnected: {_rp2040Controller.IsConnected}\r\nMode: {_rp2040Controller.CurrentMode}\r\nAvailable: {modes}\r\n\r\nKnown Chips:\r\n" + string.Join("\r\n", PinoutDatabase.GetChipIdentifiers().Take(20).Select(c => $"  - {c}"));
+            Speak($"Ready. {_rp2040Controller.AvailableModes.Count} modes available");
         }
-        catch (Exception ex)
-        {
-            _status.Text = $"Status\r\n------\r\nRP2040 error: {ex.Message}\r\n";
-            _logger.Error("RP2040 error", ex);
-            Speak("RP2040 error occurred");
-        }
+        catch (Exception ex) { _status.Text = $"RP2040 error: {ex.Message}\r\n"; _logger.Error("RP2040 error", ex); Speak("Error"); }
     }
 
-    // ========== EXISTING METHODS ==========
-
+    // EXISTING METHODS
     private async Task ScanAsync()
     {
-        SetActionButtons(false); _status.Text = "Status\r\n------\r\nChecking ADB...";
+        SetActionButtons(false); _status.Text = "Checking ADB...";
         try
         {
             _workspace.EnsureDirectories(); var adb = _tools.Find("adb");
-            if (!adb.Found || string.IsNullOrWhiteSpace(adb.Path)) { 
-                _device = null; 
-                _deviceSummary.Text = "ADB was not found.\r\n\r\nInstall Android Platform Tools or place adb.exe in the ODT Tools folder or on PATH."; 
-                _status.Text = "Status\r\n------\r\nADB unavailable.\r\nNo changes were made to the phone."; 
-                _logger.Warning("ADB was not found during device scan."); return; 
-            }
+            if (!adb.Found || string.IsNullOrWhiteSpace(adb.Path)) { _device = null; _deviceSummary.Text = "ADB not found.\r\nInstall Android Platform Tools or place adb.exe in ODT Tools."; _status.Text = "ADB unavailable."; _logger.Warning("ADB not found"); return; }
             _adb = new AdbManager(_runner, adb.Path);
-            if (!await _adb.IsAvailableAsync()) { 
-                _device = null; 
-                _deviceSummary.Text = "ADB was found but could not be started.\r\n\r\nRun Environment Check for details."; 
-                _status.Text = "Status\r\n------\r\nADB execution failed.\r\nNo changes were made to the phone."; 
-                _logger.Warning($"ADB was found at '{adb.Path}' but failed its version check."); return; 
-            }
+            if (!await _adb.IsAvailableAsync()) { _device = null; _deviceSummary.Text = "ADB found but failed."; _status.Text = "ADB failed."; _logger.Warning("ADB failed"); return; }
             var devices = await _adb.GetDevicesAsync();
-            if (devices.Count == 0) { 
-                _device = null; 
-                _deviceSummary.Text = "No Android device detected.\r\n\r\nConnect the phone with USB debugging enabled."; 
-                _status.Text = "Status\r\n------\r\nADB is working.\r\nNo device connected."; 
-                _logger.Info("ADB is available; no Android devices were detected."); return; 
-            }
+            if (devices.Count == 0) { _device = null; _deviceSummary.Text = "No device detected."; _status.Text = "No device connected."; _logger.Info("No devices"); return; }
             var first = devices[0];
-            if (first.State != DeviceConnectionState.Connected) { 
-                _device = null; 
-                _deviceSummary.Text = $"Device: {first.Serial}\r\nState: {first.State}"; 
-                _status.Text = "Status\r\n------\r\nDevice detected, but it is not authorized/online."; 
-                _logger.Warning($"Detected device '{first.Serial}' in state {first.State}."); return; 
-            }
+            if (first.State != DeviceConnectionState.Connected) { _device = null; _deviceSummary.Text = $"Device: {first.Serial}\r\nState: {first.State}"; _status.Text = "Device not ready."; _logger.Warning($"Device {first.Serial} in state {first.State}"); return; }
             _device = await _adb.InspectAsync(first.Serial);
-            if (_device is null) { 
-                _deviceSummary.Text = "Device was detected, but inspection failed."; 
-                _logger.Warning($"Inspection failed for device '{first.Serial}'."); return; 
-            }
-            _deviceSummary.Text = $"{_device.Manufacturer} {_device.Model}\r\nAndroid: {_device.AndroidVersion}\r\nSecurity patch: {_device.SecurityPatch}\r\nPlatform: {_device.Platform}\r\nVerified Boot: {_device.BootState}\r\nFlash locked: {_device.FlashLocked}\r\nSlot: {_device.Slot}\r\nSerial: {_device.Serial}";
+            if (_device == null) { _deviceSummary.Text = "Inspection failed."; _logger.Warning("Inspection failed"); return; }
+            _deviceSummary.Text = $"{_device.Manufacturer} {_device.Model}\r\nAndroid: {_device.AndroidVersion}\r\nPlatform: {_device.Platform}\r\nSerial: {_device.Serial}";
             _output.Text = string.Join(Environment.NewLine, _device.Properties.OrderBy(x => x.Key).Select(x => $"[{x.Key}]: [{x.Value}]"));
-            _status.Text = "Status\r\n------\r\nADB: Connected\r\nInspection: Complete\r\nMode: Read-only until an operation is explicitly confirmed.\r\n\r\n" + _workspace.Root;
-            _logger.Info($"Inspected Android device '{_device.Serial}' ({_device.Manufacturer} {_device.Model}).");
+            _status.Text = "ADB: Connected\r\nReady.\r\n" + _workspace.Root; _logger.Info($"Device: {_device.Serial}");
+            Speak($"Detected {_device.Manufacturer} {_device.Model}");
         }
-        catch (Exception ex) { 
-            _status.Text = $"Status\r\n------\r\nError: {ex.Message}"; 
-            _logger.Error("Device scan failed.", ex); 
-        }
-        finally { SetActionButtons(true); SetOperationButtons(_device is not null); }
+        catch (Exception ex) { _status.Text = $"Error: {ex.Message}"; _logger.Error("Scan failed", ex); Speak("Scan failed"); }
+        finally { SetActionButtons(true); SetOperationButtons(_device != null); }
     }
 
     private async Task RunOperationAsync(AndroidOperationKind kind)
     {
-        if (_device is null) return;
-        var description = kind switch { 
-            AndroidOperationKind.RebootSystem => "reboot the phone", 
-            AndroidOperationKind.RebootBootloader => "reboot the phone into its bootloader", 
-            AndroidOperationKind.RebootRecovery => "reboot the phone into recovery", 
-            _ => "perform this operation" 
-        };
-        var answer = MessageBox.Show(this, $"This will {description}.\r\n\r\nThe phone will disconnect temporarily. Continue?", "Confirm device operation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
-        if (answer != DialogResult.Yes) return;
+        if (_device == null) return;
+        var desc = kind switch { AndroidOperationKind.RebootSystem => "reboot", AndroidOperationKind.RebootBootloader => "reboot to bootloader", AndroidOperationKind.RebootRecovery => "reboot to recovery", _ => "do this" };
+        if (MessageBox.Show(this, $"This will {desc}. Continue?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
         SetActionButtons(false); SetOperationButtons(false);
         try
         {
-            var result = await new AndroidOperationService(_adb).RebootAsync(_device, kind, explicitConfirmation: true);
-            _status.Text = $"Status\r\n------\r\nOperation: {kind}\r\nExecuted: {result.Executed}\r\n{result.Message}";
-            _logger.Info($"Android operation {kind} on '{_device.Serial}' executed={result.Executed}: {result.Message}");
+            var result = await new AndroidOperationService(_adb).RebootAsync(_device, kind, true);
+            _status.Text = $"Operation: {kind}\r\nExecuted: {result.Executed}\r\n{result.Message}";
+            _logger.Info($"Operation {kind}: {result.Executed}"); Speak("Operation complete");
         }
-        catch (Exception ex) { 
-            _status.Text = $"Status\r\n------\r\nOperation failed: {ex.Message}"; 
-            _logger.Error($"Android operation {kind} failed.", ex); 
-        }
-        finally { SetActionButtons(true); SetOperationButtons(_device is not null); }
+        catch (Exception ex) { _status.Text = $"Failed: {ex.Message}"; _logger.Error("Operation failed", ex); Speak("Failed"); }
+        finally { SetActionButtons(true); SetOperationButtons(_device != null); }
     }
 
     private async Task RunEnvironmentCheckAsync()
     {
         SetActionButtons(false);
-        try { 
-            var results = await _environmentDiagnostics.RunAsync(); 
-            _output.Text = string.Join(Environment.NewLine, results.Select(FormatDiagnostic)); 
-            var failures = results.Count(x => x.Status == DiagnosticStatus.Fail); 
-            var warnings = results.Count(x => x.Status == DiagnosticStatus.Warning); 
-            _status.Text = "Status\r\n------\r\nEnvironment check complete.\r\n" + $"Failures: {failures}\r\nWarnings: {warnings}\r\n\r\nWorkspace:\r\n{_workspace.Root}"; 
-            _logger.Info($"Environment check completed with {failures} failures and {warnings} warnings."); 
-        }
-        catch (Exception ex) { 
-            _status.Text = $"Status\r\n------\r\nEnvironment check failed: {ex.Message}"; 
-            _logger.Error("Environment check failed.", ex); 
-        }
-        finally { SetActionButtons(true); SetOperationButtons(_device is not null); }
+        try { var results = await _environmentDiagnostics.RunAsync(); _output.Text = string.Join(Environment.NewLine, results.Select(FormatDiagnostic)); var f = results.Count(x => x.Status == DiagnosticStatus.Fail); var w = results.Count(x => x.Status == DiagnosticStatus.Warning); _status.Text = $"Environment check complete.\r\nFailures: {f}\r\nWarnings: {w}\r\n{_workspace.Root}"; _logger.Info($"Env check: {f} failures, {w} warnings"); Speak($"Check complete. {f} failures"); }
+        catch (Exception ex) { _status.Text = $"Failed: {ex.Message}"; _logger.Error("Env check failed", ex); Speak("Failed"); }
+        finally { SetActionButtons(true); SetOperationButtons(_device != null); }
     }
 
     private async Task RunDeepScanAsync()
     {
-        if (_device is null) return;
+        if (_device == null) return;
         SetActionButtons(false);
         try
         {
-            _status.Text = "Status\r\n------\r\nRunning read-only Android probes...";
-            var diagnostics = await new AndroidDiagnosticService(_adb).RunReadOnlyAsync(_device.Serial);
-            var capabilities = new AndroidCapabilityAnalyzer().Analyze(_device);
+            _status.Text = "Running deep scan...\r\n"; Speak("Running deep scan");
+            var diag = await new AndroidDiagnosticService(_adb).RunReadOnlyAsync(_device.Serial);
+            var caps = new AndroidCapabilityAnalyzer().Analyze(_device);
             var plan = _capabilityPlanner.Plan(_device);
-            _output.Text = string.Join(Environment.NewLine + Environment.NewLine, capabilities.Select(FormatCapability)) + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine + Environment.NewLine, plan.Select(FormatPlan)) + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine + Environment.NewLine, diagnostics.Select(FormatAndroidDiagnostic));
-            var failed = diagnostics.Count(x => !x.Success); 
-            var reportPath = _diagnosticReportWriter.Write(_workspace, _device, diagnostics); 
-            var ready = plan.Count(x => x.Ready); 
-            var writesBlocked = plan.Count(x => x.Risk == OperationRisk.PersistentWrite && !x.Ready);
-            _status.Text = "Status\r\n------\r\nDeep scan complete.\r\n" + $"Failed probes: {failed}\r\nCapabilities analyzed: {capabilities.Count}\r\nNext steps ready: {ready}\r\nPersistent writes blocked: {writesBlocked}\r\n\r\nReport:\r\n{reportPath}";
-            _logger.Info($"Deep read-only scan completed for '{_device.Serial}' with {failed} failed probes, {capabilities.Count} capability findings, and {ready} ready next steps.");
+            _output.Text = string.Join("\r\n\r\n", caps.Select(FormatCapability)) + "\r\n\r\n" + string.Join("\r\n\r\n", plan.Select(FormatPlan)) + "\r\n\r\n" + string.Join("\r\n\r\n", diag.Select(FormatAndroidDiagnostic));
+            var failed = diag.Count(x => !x.Success); var report = _diagnosticReportWriter.Write(_workspace, _device, diag); var ready = plan.Count(x => x.Ready);
+            _status.Text = $"Deep scan complete.\r\nFailed: {failed}\r\nCapabilities: {caps.Count}\r\nReady: {ready}\r\n{report}";
+            _logger.Info($"Deep scan: {failed} failed, {ready} ready"); Speak("Deep scan complete");
         }
-        catch (Exception ex) { 
-            _status.Text = $"Status\r\n------\r\nDeep scan failed: {ex.Message}"; 
-            _logger.Error("Deep Android scan failed.", ex); 
-        }
-        finally { SetActionButtons(true); SetOperationButtons(_device is not null); }
+        catch (Exception ex) { _status.Text = $"Failed: {ex.Message}"; _logger.Error("Deep scan failed", ex); Speak("Failed"); }
+        finally { SetActionButtons(true); SetOperationButtons(_device != null); }
     }
 
     private void ShowUsbDevices()
     {
         try
         {
-            _status.Text = "Status\r\n------\r\nEnumerating USB devices...";
-            var devices = _usbEnumerator.EnumerateDevices();
-            var androidDevices = _usbEnumerator.GetAndroidDevices(devices);
-            
+            _status.Text = "Enumerating USB...\r\n"; Speak("Enumerating USB devices");
+            var devices = _usbEnumerator.EnumerateDevices(); var android = _usbEnumerator.GetAndroidDevices(devices);
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("=== All USB Devices ===");
-            foreach (var device in devices)
-            {
-                sb.AppendLine($"Device: {device.DisplayName}");
-                sb.AppendLine($"  ID: {device.DeviceId}");
-                if (!string.IsNullOrWhiteSpace(device.VidPid))
-                {
-                    sb.AppendLine($"  VID/PID: {device.VidPid}");
-                }
-                if (!string.IsNullOrWhiteSpace(device.Manufacturer))
-                {
-                    sb.AppendLine($"  Manufacturer: {device.Manufacturer}");
-                }
-                sb.AppendLine();
-            }
-            
-            sb.AppendLine("=== Android Devices ===");
-            if (androidDevices.Count == 0)
-            {
-                sb.AppendLine("No Android devices detected.");
-            }
-            else
-            {
-                foreach (var device in androidDevices)
-                {
-                    sb.AppendLine($"Device: {device.DisplayName}");
-                    sb.AppendLine($"  ID: {device.DeviceId}");
-                    sb.AppendLine();
-                }
-            }
-            
+            foreach (var d in devices) { sb.AppendLine($"Device: {d.DisplayName}\r\nID: {d.DeviceId}\r\n"); if (!string.IsNullOrEmpty(d.VidPid)) sb.AppendLine($"VID/PID: {d.VidPid}\r\n"); }
+            sb.AppendLine("=== Android ===");
+            if (android.Count == 0) sb.AppendLine("None"); else foreach (var d in android) sb.AppendLine($"{d.DisplayName}\r\n{d.DeviceId}\r\n");
             _output.Text = sb.ToString();
-            _status.Text = "Status\r\n------\r\nUSB enumeration complete.\r\n" + $"Total devices: {devices.Count}\r\nAndroid devices: {androidDevices.Count}\r\n\r\nWorkspace:\r\n{_workspace.Root}";
-            _logger.Info($"USB enumeration completed: {devices.Count} devices, {androidDevices.Count} Android.");
+            _status.Text = $"USB done. Total: {devices.Count}, Android: {android.Count}\r\n{_workspace.Root}";
+            _logger.Info($"USB: {devices.Count} devices, {android.Count} Android"); Speak($"Found {devices.Count} USB devices");
         }
-        catch (Exception ex)
-        {
-            _status.Text = $"Status\r\n------\r\nUSB enumeration failed: {ex.Message}";
-            _logger.Error("USB enumeration failed.", ex);
-        }
+        catch (Exception ex) { _status.Text = $"Failed: {ex.Message}"; _logger.Error("USB failed", ex); Speak("Failed"); }
     }
 
-    private void SetActionButtons(bool enabled) 
-    {
-        _scanButton.Enabled = enabled; 
-        _environmentButton.Enabled = enabled; 
-        _deepScanButton.Enabled = enabled && _device is not null; 
-        _usbScanButton.Enabled = enabled;
-        _researchButton.Enabled = enabled && _device is not null;
-        _rp2040Button.Enabled = enabled;
-    }
-    
-    private void SetOperationButtons(bool enabled) 
-    {
-        _rebootButton.Enabled = enabled; 
-        _bootloaderButton.Enabled = enabled; 
-        _recoveryButton.Enabled = enabled; 
-    }
-    
-    private static string FormatDiagnostic(DiagnosticItem item) 
-    {
-        var evidence = string.IsNullOrWhiteSpace(item.Evidence) ? string.Empty : $"\r\n    Evidence: {item.Evidence}"; 
-        return $"[{item.Status.ToString().ToUpperInvariant()}] {item.Name}: {item.Value}{evidence}"; 
-    }
-    
-    private static string FormatCapability(AndroidCapability item) => 
-        $"[{item.Status.ToString().ToUpperInvariant()}] {item.Name}\r\n    Evidence: {item.Evidence}\r\n    Meaning: {item.Explanation}";
-    
-    private static string FormatPlan(PlannedOperation item) => 
-        $"[{(item.Ready ? "READY" : "BLOCKED")}] {item.Name} ({item.Risk})\r\n    Reason: {item.Reason}\r\n    Preconditions: {string.Join("; ", item.Preconditions)}";
-    
-    private static string FormatAndroidDiagnostic(AndroidDiagnosticResult item) => 
-        $"[{(item.Success ? "PASS" : "FAIL")}] {item.Name} ({item.Duration.TotalMilliseconds:F0} ms)\r\n{item.Output}";
+    private void SetActionButtons(bool e) { _scanButton.Enabled = e; _environmentButton.Enabled = e; _deepScanButton.Enabled = e && _device != null; _usbScanButton.Enabled = e; _researchButton.Enabled = e && _device != null; _rp2040Button.Enabled = e; }
+    private void SetOperationButtons(bool e) { _rebootButton.Enabled = e; _bootloaderButton.Enabled = e; _recoveryButton.Enabled = e; }
+    private static string FormatDiagnostic(DiagnosticItem i) => $"[{i.Status.ToString().ToUpper()}] {i.Name}: {i.Value}" + (string.IsNullOrEmpty(i.Evidence) ? "" : $"\r\n    Evidence: {i.Evidence}");
+    private static string FormatCapability(AndroidCapability c) => $"[{c.Status.ToString().ToUpper()}] {c.Name}\r\n    Evidence: {c.Evidence}\r\n    Meaning: {c.Explanation}";
+    private static string FormatPlan(PlannedOperation p) => $"[{(p.Ready ? "READY" : "BLOCKED")}] {p.Name} ({p.Risk})\r\n    Reason: {p.Reason}\r\n    Preconditions: {string.Join("; ", p.Preconditions)}";
+    private static string FormatAndroidDiagnostic(AndroidDiagnosticResult r) => $"[{(r.Success ? "PASS" : "FAIL")}] {r.Name} ({r.Duration.TotalMilliseconds:F0}ms)\r\n{r.Output}";
 
     private void GenerateReport()
     {
-        if (_device is null) 
-        {
-            MessageBox.Show(this, "Detect a connected Android device first.", "No device", MessageBoxButtons.OK, MessageBoxIcon.Information); 
-            return; 
-        }
-        try 
-        {
-            var path = _reportWriter.Write(_workspace, _device); 
-            _logger.Info($"Generated Android report '{path}'."); 
-            MessageBox.Show(this, $"Report saved to:\r\n{path}", "Report created", MessageBoxButtons.OK, MessageBoxIcon.Information); 
-        }
-        catch (Exception ex) 
-        {
-            _logger.Error("Could not create Android report.", ex); 
-            MessageBox.Show(this, ex.Message, "Could not create report", MessageBoxButtons.OK, MessageBoxIcon.Error); 
-        }
+        if (_device == null) { MessageBox.Show(this, "Detect device first.", "No device", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+        try { var path = _reportWriter.Write(_workspace, _device); _logger.Info($"Report: {path}"); MessageBox.Show(this, $"Saved to:\r\n{path}", "Report", MessageBoxButtons.OK, MessageBoxIcon.Information); Speak("Report saved"); }
+        catch (Exception ex) { _logger.Error("Report failed", ex); MessageBox.Show(this, ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); Speak("Failed"); }
     }
 
     private void OpenWorkspace()
     {
-        try 
-        {
-            _workspace.EnsureDirectories(); 
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo 
-            {
-                FileName = "explorer.exe", 
-                Arguments = $"\"{_workspace.Root}\"", 
-                UseShellExecute = true 
-            }); 
-        }
-        catch (Exception ex) 
-        {
-            _logger.Error("Could not open workspace.", ex); 
-            MessageBox.Show(this, ex.Message, "Could not open workspace", MessageBoxButtons.OK, MessageBoxIcon.Error); 
-        }
+        try { _workspace.EnsureDirectories(); System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{_workspace.Root}\"", UseShellExecute = true }); }
+        catch (Exception ex) { _logger.Error("Workspace failed", ex); MessageBox.Show(this, ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); Speak("Failed"); }
     }
 }
