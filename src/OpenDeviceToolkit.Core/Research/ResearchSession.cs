@@ -2,10 +2,6 @@ using System.Text.Json;
 
 namespace OpenDeviceToolkit.Core.Research;
 
-/// <summary>
-/// Represents an active research session for a specific device or objective.
-/// Tracks hypotheses, tests, results, and progress.
-/// </summary>
 public sealed class ResearchSession : IDisposable
 {
     private readonly string _sessionId;
@@ -13,14 +9,10 @@ public sealed class ResearchSession : IDisposable
     private readonly string _objective;
     private readonly List<ResearchHypothesis> _hypotheses = new();
     private readonly List<ResearchResult> _results = new();
-    private readonly List<ResearchTest> _tests = new();
     private DateTime _startedAt;
     private DateTime? _completedAt;
     private ResearchStatus _status = ResearchStatus.InProgress;
     
-    /// <summary>
-    /// Initializes a new research session.
-    /// </summary>
     public ResearchSession(string deviceId, string objective)
     {
         _sessionId = Guid.NewGuid().ToString();
@@ -29,143 +21,38 @@ public sealed class ResearchSession : IDisposable
         _startedAt = DateTime.UtcNow;
     }
     
-    /// <summary>
-    /// Gets the unique session identifier.
-    /// </summary>
     public string SessionId => _sessionId;
-    
-    /// <summary>
-    /// Gets the target device identifier.
-    /// </summary>
     public string DeviceId => _deviceId;
-    
-    /// <summary>
-    /// Gets the research objective.
-    /// </summary>
     public string Objective => _objective;
-    
-    /// <summary>
-    /// Gets the session start time.
-    /// </summary>
     public DateTime StartedAt => _startedAt;
-    
-    /// <summary>
-    /// Gets the session completion time, or null if still in progress.
-    /// </summary>
     public DateTime? CompletedAt => _completedAt;
-    
-    /// <summary>
-    /// Gets the current session status.
-    /// </summary>
     public ResearchStatus Status => _status;
-    
-    /// <summary>
-    /// Gets the duration of the session.
-    /// </summary>
-    public TimeSpan Duration => _completedAt.HasValue 
-        ? _completedAt.Value - _startedAt 
-        : DateTime.UtcNow - _startedAt;
-    
-    /// <summary>
-    /// Gets all hypotheses generated during this session.
-    /// </summary>
+    public TimeSpan Duration => _completedAt.HasValue ? _completedAt.Value - _startedAt : DateTime.UtcNow - _startedAt;
     public IReadOnlyList<ResearchHypothesis> Hypotheses => _hypotheses.AsReadOnly();
-    
-    /// <summary>
-    /// Gets all results collected during this session.
-    /// </summary>
     public IReadOnlyList<ResearchResult> Results => _results.AsReadOnly();
     
-    /// <summary>
-    /// Gets all tests executed during this session.
-    /// </summary>
-    public IReadOnlyList<ResearchTest> Tests => _tests.AsReadOnly();
+    public void AddHypothesis(ResearchHypothesis h) => _hypotheses.Add(h);
+    public void AddResult(ResearchResult r) => _results.Add(r);
+    public ResearchHypothesis? GetBestHypothesis() => _hypotheses.OrderByDescending(h => h.Confidence).FirstOrDefault();
+    public void Complete(ResearchStatus status) { _status = status; _completedAt = DateTime.UtcNow; }
     
-    /// <summary>
-    /// Adds a hypothesis to the session.
-    /// </summary>
-    public void AddHypothesis(ResearchHypothesis hypothesis) => _hypotheses.Add(hypothesis);
-    
-    /// <summary>
-    /// Adds a result to the session.
-    /// </summary>
-    public void AddResult(ResearchResult result) => _results.Add(result);
-    
-    /// <summary>
-    /// Records a test execution.
-    /// </summary>
-    public void RecordTest(ResearchTest test) => _tests.Add(test);
-    
-    /// <summary>
-    /// Gets the current best hypothesis based on confidence and risk.
-    /// </summary>
-    public ResearchHypothesis? GetBestHypothesis() =>
-        _hypotheses.OrderByDescending(h => h.Confidence).FirstOrDefault();
-    
-    /// <summary>
-    /// Gets hypotheses that haven't been tested yet.
-    /// </summary>
-    public IReadOnlyList<ResearchHypothesis> GetUntestedHypotheses() =>
-        _hypotheses.Where(h => !_tests.Any(t => t.HypothesisId == h.Id)).ToList().AsReadOnly();
-    
-    /// <summary>
-    /// Completes the session with a final status.
-    /// </summary>
-    public void Complete(ResearchStatus status)
-    {
-        _status = status;
-        _completedAt = DateTime.UtcNow;
-    }
-    
-    /// <summary>
-    /// Saves the session state to a file.
-    /// </summary>
     public void Save(string directory)
     {
         Directory.CreateDirectory(directory);
         var path = Path.Combine(directory, $"session_{_sessionId}.json");
-        var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
-        File.WriteAllText(path, json);
+        File.WriteAllText(path, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
     }
     
-    /// <summary>
-    /// Loads a session from a file.
-    /// </summary>
     public static ResearchSession? Load(string path)
     {
-        if (!File.Exists(path))
-            return null;
-        
-        var json = File.ReadAllText(path);
-        return JsonSerializer.Deserialize<ResearchSession>(json);
+        if (!File.Exists(path)) return null;
+        return JsonSerializer.Deserialize<ResearchSession>(File.ReadAllText(path));
     }
     
     public void Dispose() => Complete(ResearchStatus.Completed);
 }
 
-/// <summary>
-/// Status of a research session.
-/// </summary>
 public enum ResearchStatus
 {
-    InProgress,
-    Paused,
-    Completed,
-    Failed,
-    Cancelled
+    InProgress, Paused, Completed, Failed, Cancelled
 }
-
-/// <summary>
-/// Represents a test execution within a research session.
-/// </summary>
-public sealed record ResearchTest
-(
-    string TestId,
-    string HypothesisId,
-    string Description,
-    bool Success,
-    string? Output,
-    TimeSpan Duration,
-    DateTime ExecutedAt,
-    RiskLevel RiskLevel
-);

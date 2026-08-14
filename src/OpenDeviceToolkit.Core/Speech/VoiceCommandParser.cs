@@ -1,13 +1,10 @@
 namespace OpenDeviceToolkit.Core.Speech;
 
 /// <summary>
-/// Parses voice input into structured commands for OpenDeviceToolkit.
+/// Parses voice input into structured commands.
 /// </summary>
 public static class VoiceCommandParser
 {
-    /// <summary>
-    /// Parses voice input into a structured command.
-    /// </summary>
     public static VoiceCommand Parse(string input)
     {
         if (string.IsNullOrWhiteSpace(input))
@@ -16,136 +13,71 @@ public static class VoiceCommandParser
         input = input.ToLowerInvariant().Trim();
         
         // Remove wake words
-        if (input.StartsWith("hey odt") || input.StartsWith("ok odt") || 
-            input.StartsWith("open device toolkit") || input.StartsWith("odt"))
+        if (input.StartsWith("hey odt") || input.StartsWith("ok odt") || input.StartsWith("open device toolkit") || input.StartsWith("odt"))
         {
-            var wakeIndex = input.IndexOfAny(new[] { ' ', '.' });
-            if (wakeIndex >= 0)
-                input = input.Substring(wakeIndex + 1).Trim();
+            var idx = input.IndexOfAny(new[] { ' ', '.' });
+            if (idx >= 0) input = input.Substring(idx + 1).Trim();
         }
         
-        // Detect command type
-        if (MatchesAny(input, "scan", "detect", "find", "discover", "look for"))
-        {
-            return new VoiceCommand
-            {
-                Type = VoiceCommandType.ScanDevice,
-                Device = ExtractDevice(input),
-                Objective = ExtractObjective(input)
-            };
-        }
+        if (Matches(input, "scan", "detect", "find", "discover", "look for"))
+            return new VoiceCommand { Type = VoiceCommandType.ScanDevice, Device = Extract(input, "phone", "device", "hardware") };
         
-        if (MatchesAny(input, "root", "unlock", "gain access", "access", "control", "take over", "hack"))
-        {
-            return new VoiceCommand
-            {
-                Type = VoiceCommandType.GainAccess,
-                Device = ExtractDevice(input),
-                Objective = ExtractObjective(input) ?? "gain full access"
-            };
-        }
+        if (Matches(input, "root", "unlock", "gain access", "access", "control", "take over", "hack"))
+            return new VoiceCommand { Type = VoiceCommandType.GainAccess, Device = Extract(input, "phone", "device"), Objective = ExtractObjective(input) ?? "gain full access" };
         
-        if (MatchesAny(input, "report", "generate", "create", "make", "save"))
-        {
-            return new VoiceCommand
-            {
-                Type = VoiceCommandType.GenerateReport,
-                Device = ExtractDevice(input)
-            };
-        }
+        if (Matches(input, "report", "generate", "create", "make", "save"))
+            return new VoiceCommand { Type = VoiceCommandType.GenerateReport, Device = Extract(input, "phone", "device") };
         
-        if (MatchesAny(input, "reboot", "restart", "reboot device", "reset"))
-        {
-            return new VoiceCommand
-            {
-                Type = VoiceCommandType.RebootDevice,
-                Device = ExtractDevice(input)
-            };
-        }
+        if (Matches(input, "reboot", "restart", "reset"))
+            return new VoiceCommand { Type = VoiceCommandType.RebootDevice, Device = Extract(input, "phone", "device") };
         
-        if (MatchesAny(input, "exit", "quit", "close", "stop", "goodbye", "bye"))
-        {
+        if (Matches(input, "exit", "quit", "close", "stop", "goodbye", "bye"))
             return new VoiceCommand { Type = VoiceCommandType.Exit };
-        }
         
-        if (MatchesAny(input, "help", "what can", "commands", "tell me", "how to"))
-        {
+        if (Matches(input, "help", "what can", "commands", "tell me", "how to"))
             return new VoiceCommand { Type = VoiceCommandType.Help };
-        }
         
-        // Try to extract as a general objective
-        return new VoiceCommand
-        {
-            Type = VoiceCommandType.CustomObjective,
-            Objective = input
-        };
+        return new VoiceCommand { Type = VoiceCommandType.CustomObjective, Objective = input };
     }
     
-    private static bool MatchesAny(string input, params string[] keywords)
-    {
-        foreach (var keyword in keywords)
-        {
-            if (input.Contains(keyword))
-                return true;
-        }
-        return false;
-    }
+    private static bool Matches(string input, params string[] keywords) => keywords.Any(k => input.Contains(k));
     
-    private static string? ExtractDevice(string input)
+    private static string? Extract(string input, params string[] keywords)
     {
-        var keywords = new[] { "phone", "device", "tablet", "board", "chip", "hardware", "on my", "the" };
-        
-        foreach (var keyword in keywords)
+        foreach (var k in keywords)
         {
-            var index = input.IndexOf(keyword, StringComparison.OrdinalIgnoreCase);
-            if (index >= 0)
+            var idx = input.IndexOf(k, StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0)
             {
-                var after = input.Substring(index + keyword.Length).Trim();
+                var after = input.Substring(idx + k.Length).Trim();
                 if (!string.IsNullOrEmpty(after) && after.Length < 50)
                     return after;
             }
         }
-        
         return null;
     }
     
     private static string? ExtractObjective(string input)
     {
         var actions = new[] { "to", "i want to", "i need to", "try to", "how to", "so that", "in order to" };
-        
-        foreach (var action in actions)
+        foreach (var a in actions)
         {
-            var index = input.IndexOf(action, StringComparison.OrdinalIgnoreCase);
-            if (index >= 0)
+            var idx = input.IndexOf(a, StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0)
             {
-                var objective = input.Substring(index + action.Length).Trim();
-                if (!string.IsNullOrEmpty(objective))
-                    return objective;
+                var obj = input.Substring(idx + a.Length).Trim();
+                if (!string.IsNullOrEmpty(obj)) return obj;
             }
         }
-        
         return null;
     }
 }
 
-/// <summary>
-/// Types of voice commands.
-/// </summary>
 public enum VoiceCommandType
 {
-    Unknown,
-    ScanDevice,
-    GainAccess,
-    GenerateReport,
-    RebootDevice,
-    CustomObjective,
-    Help,
-    Exit
+    Unknown, ScanDevice, GainAccess, GenerateReport, RebootDevice, CustomObjective, Help, Exit
 }
 
-/// <summary>
-/// Represents a parsed voice command.
-/// </summary>
 public sealed record VoiceCommand
 {
     public VoiceCommandType Type { get; init; } = VoiceCommandType.Unknown;
