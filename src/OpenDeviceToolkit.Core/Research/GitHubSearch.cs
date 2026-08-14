@@ -11,7 +11,7 @@ public sealed class GitHubSearch : ResearchSourceBase
     private readonly AppLogger? _logger;
     
     public override string Name => "GitHub";
-    public override int Priority => 10; // High priority
+    public override int Priority => 10;
     
     public GitHubSearch(HttpClient httpClient, AppLogger? logger = null)
     {
@@ -30,8 +30,179 @@ public sealed class GitHubSearch : ResearchSourceBase
         
         try
         {
-            // Build GitHub search query
             var searchQuery = BuildSearchQuery(query, deviceInfo);
             var url = $"https://api.github.com/search/code?q={Uri.EscapeDataString(searchQuery)}&per_page=10";
             
-            _logger?.Info($
+            _logger?.Info($"Searching GitHub for: {searchQuery}");
+            
+            var response = await _httpClient.GetAsync(url, cancellationToken);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                var searchResponse = JsonSerializer.Deserialize<GitHubSearchResponse>(json);
+                
+                if (searchResponse?.Items != null)
+                {
+                    foreach (var item in searchResponse.Items)
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                            break;
+                        
+                        var confidence = CalculateConfidence(item);
+                        var risk = EstimateRisk(item);
+                        
+                        results.Add(new ResearchResult(
+                            Id: item.Sha,
+                            Title: item.Name,
+                            Source: "GitHub",
+                            Url: item.HtmlUrl,
+                            Snippet: item.TextMatches?.FirstOrDefault()?.Fragment ?? item.Path,
+                            Confidence: confidence,
+                            EstimatedRisk: risk,
+                            Timestamp: DateTime.UtcNow,
+                            Tags: new[] { "github", "code" }
+                        ));
+                    }
+                }
+            }
+            else
+            {
+                _logger?.Warning($"GitHub API error: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.Error($"GitHub search failed: {ex.Message}", ex);
+        }
+        
+        return results;
+    }
+    
+    private string BuildSearchQuery(string query, Usb.UsbDeviceInfo? deviceInfo)
+    {
+        var parts = new List<string> { query };
+        
+        if (deviceInfo != null)
+        {
+            if (!string.IsNullOrEmpty(deviceInfo.Manufacturer))
+                parts.Add($"org:{deviceInfo.Manufacturer}");
+            
+            if (!string.IsNullOrEmpty(deviceInfo.VidPid))
+                parts.Add(deviceInfo.VidPid);
+        }
+        
+        // Focus on relevant file types
+        parts.Add("extension:c extension:cpp extension:py extension:sh extension:md extension:txt");
+        
+        return string.Join(" ", parts);
+    }
+    
+    private double CalculateConfidence(GitHubSearchItem item)
+    {
+        // Base confidence
+        var confidence = 0.5;
+        
+        // Boost for files with more stars
+        if (item.Repository?.StargazersCount > 100)
+            confidence += 0.2;
+        else if (item.Repository?.StargazersCount > 10)
+            confidence += 0.1;
+        
+        // Boost for recent files
+        if (item.Repository?.UpdatedAt > DateTime.UtcNow.AddYears(-2))
+            confidence += 0.1;
+        
+        // Cap at 1.0
+        return Math.Min(confidence, 1.0);
+    }
+    
+    private RiskLevel EstimateRisk(GitHubSearchItem item)
+    {
+        var path = item.Path.ToLower();
+        var name = item.Name.ToLower();
+        
+        if (path.Contains("exploit") || path.Contains("root") || path.Contains("unlock") || 
+            name.Contains("exploit") || name.Contains("root") || name.Contains("unlock"))
+        {
+            return RiskLevel.PotentialBrick;
+        }
+        
+        if (path.Contains("firmware") || path.Contains("flash") || 
+            name.Contains("firmware") || name.Contains("flash"))
+        {
+            return RiskLevel.PersistentWrite;
+        }
+        
+        if (path.Contains("bootloader") || path.Contains("recovery") || 
+            name.Contains("bootloader") || name.Contains("recovery"))
+        {
+            return RiskLevel.Reversible;
+        }
+        
+        return RiskLevel.ReadOnly;
+    }
+    
+    public override async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Test GitHub API connectivity
+            var response = await _httpClient.GetAsync("https://api.github.com", cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+}
+
+// GitHub API response models
+internal sealed class GitHubSearchResponse
+{
+    [JsonPropertyName("total_count")]
+    public int TotalCount { get; set; }
+    
+    [JsonPropertyName("items")]
+    public IReadOnlyList<GitHubSearchItem>? Items { get; set; }
+}
+
+internal sealed class GitHubSearchItem
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+    
+    [JsonPropertyName("path")]
+    public string Path { get; set; } = string.Empty;
+    
+    [JsonPropertyName("sha")]
+    public string Sha { get; set; } = string.Empty;
+    
+    [JsonPropertyName("html_url")]
+    public string HtmlUrl { get; set; } = string.Empty;
+    
+    [JsonPropertyName("repository")]
+    public GitHubRepository? Repository { get; set; }
+    
+    [JsonPropertyName("text_matches")]
+    public IReadOnlyList<GitHubTextMatch>? TextMatches { get; set; }
+}
+
+internal sealed class GitHubRepository
+{
+    [JsonPropertyName("full_name")]
+    public string FullName { get; set; } = string.Empty;
+    
+    [JsonPropertyName("stargazers_count")]
+    public int StargazersCount { get; set; }
+    
+    [JsonPropertyName("updated_at")]
+    public DateTime UpdatedAt { get; set; }
+}
+
+internal sealed class GitHubTextMatch
+{
+    [JsonPropertyName("fragment")]
+    public string Fragment { get; set; } = string.Empty;
+}
