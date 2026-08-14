@@ -24,12 +24,19 @@ public sealed class ResearchEngine : IDisposable
         
         // Add default research sources
         _sources.Add(new GitHubSearch(new HttpClient(), logger));
+        _sources.Add(new XdaSearch(new HttpClient(), logger));
+        _sources.Add(new OfflineResearcher(logger));
     }
     
     /// <summary>
     /// Gets the current active research session.
     /// </summary>
     public ResearchSession? CurrentSession => _currentSession;
+    
+    /// <summary>
+    /// Gets all registered research sources.
+    /// </summary>
+    public IReadOnlyList<IResearchSource> Sources => _sources.AsReadOnly();
     
     /// <summary>
     /// Adds a research source to the engine.
@@ -86,6 +93,7 @@ public sealed class ResearchEngine : IDisposable
             {
                 if (await source.IsAvailableAsync(cancellationToken))
                 {
+                    _logger.Info($"Searching {source.Name} for: {query}");
                     var results = await source.SearchAsync(query, deviceInfo, cancellationToken);
                     allResults.AddRange(results);
                     _logger.Info($"Found {results.Count} results from {source.Name}");
@@ -101,7 +109,33 @@ public sealed class ResearchEngine : IDisposable
             }
         }
         
-        return allResults.OrderByDescending(r => r.Confidence).ToList().AsReadOnly();
+        // Deduplicate results
+        var uniqueResults = DeduplicateResults(allResults);
+        
+        // Sort by confidence
+        return uniqueResults.OrderByDescending(r => r.Confidence).ToList().AsReadOnly();
+    }
+    
+    /// <summary>
+    /// Deduplicates results based on URL and title similarity.
+    /// </summary>
+    private IReadOnlyList<ResearchResult> DeduplicateResults(IReadOnlyList<ResearchResult> results)
+    {
+        var unique = new List<ResearchResult>();
+        var seenUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenTitles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        
+        foreach (var result in results)
+        {
+            if (!seenUrls.Contains(result.Url) && !seenTitles.Contains(result.Title))
+            {
+                unique.Add(result);
+                seenUrls.Add(result.Url);
+                seenTitles.Add(result.Title);
+            }
+        }
+        
+        return unique;
     }
     
     /// <summary>
@@ -122,7 +156,7 @@ public sealed class ResearchEngine : IDisposable
             };
             
             if (!string.IsNullOrEmpty(result.Snippet))
-                evidence.Add($"Snippet: {result.Snippet[..Math.Min(result.Snippet.Length, 100)]}...");
+                evidence.Add($"Snippet: {result.Snippet[..Math.Min(result.Snippet.Length, 200)]}...");
             
             if (deviceInfo != null)
             {
@@ -148,14 +182,18 @@ public sealed class ResearchEngine : IDisposable
     public ResearchPlan CreatePlan(string deviceId, string objective, IReadOnlyList<ResearchHypothesis> hypotheses)
     {
         var plan = new ResearchPlan(deviceId, objective);
-        foreach (var hypothesis in hypotheses.OrderByDescending(h => h.Confidence))
+        
+        // Sort hypotheses by confidence (descending) and risk (ascending for safety)
+        foreach (var hypothesis in hypotheses.OrderByDescending(h => h.Confidence).ThenBy(h => h.Risk))
         {
             plan.AddStep(new ResearchStep(
                 $"Test: {hypothesis.Description}",
                 hypothesis.Risk,
-                hypothesis.Evidence
+                hypothesis.Evidence,
+                requiresConfirmation: hypothesis.Risk > RiskLevel.Reversible
             ));
         }
+        
         return plan;
     }
     
@@ -185,7 +223,10 @@ public sealed class ResearchEngine : IDisposable
         try
         {
             _logger.Info($"Executing step: {currentStep.Description} (Risk: {currentStep.Risk})");
+            
+            // Simulate execution - in real implementation, this would run actual commands
             await Task.Delay(100, cancellationToken);
+            
             plan.CompleteCurrentStep(true, "Step executed successfully");
             return true;
         }
@@ -208,23 +249,55 @@ public sealed class ResearchEngine : IDisposable
         CancellationToken cancellationToken = default)
     {
         var session = StartSession(deviceId, objective);
-        _logger.Info($"Searching for: {objective}");
+        _logger.Info($"Starting research workflow: {objective}");
+        
+        // Search for information
         var results = await SearchAsync(objective, deviceInfo, cancellationToken);
         session.AddResults(results);
+        _logger.Info($"Found {results.Count} research results");
+        
+        // Generate hypotheses
         var hypotheses = GenerateHypotheses(results, deviceInfo);
         foreach (var hyp in hypotheses)
             session.AddHypothesis(hyp);
-        var plan = CreatePlan(deviceId, objective, hypotheses);
+        _logger.Info($"Generated {hypotheses.Count} hypotheses");
         
+        // Create plan
+        var plan = CreatePlan(deviceId, objective, hypotheses);
+        _logger.Info($"Created plan with {plan.Steps.Count} steps");
+        
+        // Optionally execute
         if (autoExecute)
         {
+            _logger.Info("Auto-executing plan...");
             while (!plan.IsComplete && !cancellationToken.IsCancellationRequested)
             {
                 await ExecuteNextStepAsync(plan, autoConfirmSafe: false, cancellationToken);
             }
+            _logger.Info("Plan execution complete");
         }
         
         return plan;
+    }
+    
+    /// <summary>
+    /// Runs a quick research for a specific device model.
+    /// </summary>
+    public async Task<ResearchPlan> QuickResearchAsync(string deviceModel, CancellationToken cancellationToken = default)
+    {
+        var objective = $"Gain access to {deviceModel}";
+        return await RunWorkflowAsync(deviceModel, objective, autoExecute: false, cancellationToken: cancellationToken);
+    }
+    
+    /// <summary>
+    /// Gets the best hypothesis for a device.
+    /// </summary>
+    public ResearchHypothesis? GetBestHypothesis(string deviceId, string objective, Usb.UsbDeviceInfo? deviceInfo = null)
+    {
+        var session = StartSession(deviceId, objective);
+        var results = SearchAsync(objective, deviceInfo, CancellationToken.None).Result;
+        var hypotheses = GenerateHypotheses(results, deviceInfo);
+        return hypotheses.OrderByDescending(h => h.Confidence).FirstOrDefault();
     }
     
     public void Dispose()
