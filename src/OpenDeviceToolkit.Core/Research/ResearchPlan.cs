@@ -1,5 +1,8 @@
 namespace OpenDeviceToolkit.Core.Research;
 
+/// <summary>
+/// Represents a plan for researching and achieving a specific objective.
+/// </summary>
 public sealed class ResearchPlan
 {
     private readonly List<ResearchStep> _steps = new();
@@ -18,8 +21,14 @@ public sealed class ResearchPlan
     }
     
     public void AddStep(ResearchStep step) => _steps.Add(step);
-    public ResearchStep? CurrentStep => _currentStepIndex >= 0 && _currentStepIndex < _steps.Count ? _steps[_currentStepIndex] : null;
-    public ResearchStep? NextStep => _currentStepIndex + 1 < _steps.Count ? _steps[_currentStepIndex + 1] : null;
+    
+    public ResearchStep? CurrentStep => _currentStepIndex >= 0 && _currentStepIndex < _steps.Count 
+        ? _steps[_currentStepIndex] 
+        : null;
+    
+    public ResearchStep? NextStep => _currentStepIndex + 1 < _steps.Count 
+        ? _steps[_currentStepIndex + 1] 
+        : null;
     
     public bool Advance() => _currentStepIndex + 1 < _steps.Count && ++_currentStepIndex >= 0;
     
@@ -39,7 +48,9 @@ public sealed class ResearchPlan
     {
         var plan = new ResearchPlan(session.DeviceId, session.Objective);
         plan.AddStep(new ResearchStep(
-            hypothesis.Risk <= RiskLevel.Reversible ? $"Test: {hypothesis.Description}" : $"CONFIRM: {hypothesis.Description}",
+            hypothesis.Risk <= RiskLevel.Reversible 
+                ? $"Test: {hypothesis.Description}" 
+                : $"CONFIRM: {hypothesis.Description}",
             hypothesis.Risk,
             hypothesis.Evidence,
             hypothesis.Risk > RiskLevel.Reversible
@@ -48,6 +59,9 @@ public sealed class ResearchPlan
     }
 }
 
+/// <summary>
+/// Represents a single step in a research plan.
+/// </summary>
 public sealed class ResearchStep
 {
     public string Description { get; set; }

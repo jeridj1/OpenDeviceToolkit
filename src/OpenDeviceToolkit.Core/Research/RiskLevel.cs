@@ -7,31 +7,26 @@ public enum RiskLevel
 {
     /// <summary>
     /// Read-only operations that cannot modify the device state.
-    /// Example: ADB getprop, fastboot devices, reading partitions.
     /// </summary>
     ReadOnly,
     
     /// <summary>
     /// Operations that may temporarily modify state but can be reversed.
-    /// Example: Rebooting to bootloader, enabling ADB over network.
     /// </summary>
     Reversible,
     
     /// <summary>
     /// Operations that make persistent changes to the device.
-    /// Example: Flashing recovery, unlocking bootloader, modifying system partitions.
     /// </summary>
     PersistentWrite,
     
     /// <summary>
     /// Operations that may cause permanent damage or bricking.
-    /// Example: Experimental exploits, voltage glitching, writing to critical partitions.
     /// </summary>
     PotentialBrick,
     
     /// <summary>
     /// User has explicitly authorized irreversible experiments.
-    /// Device is considered e-waste; bricking is acceptable.
     /// </summary>
     EWasteMode
 }
@@ -41,9 +36,6 @@ public enum RiskLevel
 /// </summary>
 public static class RiskLevelExtensions
 {
-    /// <summary>
-    /// Gets a human-readable description of the risk level.
-    /// </summary>
     public static string GetDescription(this RiskLevel level) => level switch
     {
         RiskLevel.ReadOnly => "Safe: Read-only operation",
@@ -54,9 +46,6 @@ public static class RiskLevelExtensions
         _ => "Unknown risk"
     };
     
-    /// <summary>
-    /// Gets the color associated with the risk level for UI display.
-    /// </summary>
     public static string GetColor(this RiskLevel level) => level switch
     {
         RiskLevel.ReadOnly => "Green",
@@ -67,13 +56,7 @@ public static class RiskLevelExtensions
         _ => "Gray"
     };
     
-    /// <summary>
-    /// Checks if this risk level requires explicit user confirmation.
-    /// </summary>
     public static bool RequiresConfirmation(this RiskLevel level) => level >= RiskLevel.PersistentWrite;
     
-    /// <summary>
-    /// Checks if this risk level requires a second confirmation for irreversible actions.
-    /// </summary>
     public static bool RequiresDoubleConfirmation(this RiskLevel level) => level >= RiskLevel.PotentialBrick;
 }

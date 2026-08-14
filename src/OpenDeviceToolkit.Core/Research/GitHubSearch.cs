@@ -52,16 +52,13 @@ public sealed class GitHubSearch : ResearchSourceBase
                         var confidence = CalculateConfidence(item);
                         var risk = EstimateRisk(item);
                         
-                        results.Add(new ResearchResult(
-                            Id: item.Sha,
-                            Title: item.Name,
-                            Source: "GitHub",
-                            Url: item.HtmlUrl,
-                            Snippet: item.TextMatches?.FirstOrDefault()?.Fragment ?? item.Path,
-                            Confidence: confidence,
-                            EstimatedRisk: risk,
-                            Timestamp: DateTime.UtcNow,
-                            Tags: new[] { "github", "code" }
+                        results.Add(ResearchResult.Create(
+                            title: item.Name,
+                            source: "GitHub",
+                            url: item.HtmlUrl,
+                            snippet: item.TextMatches?.FirstOrDefault()?.Fragment ?? item.Path,
+                            confidence: confidence,
+                            estimatedRisk: risk
                         ));
                     }
                 }
@@ -87,10 +84,12 @@ public sealed class GitHubSearch : ResearchSourceBase
         {
             if (!string.IsNullOrEmpty(deviceInfo.Manufacturer))
                 parts.Add($"org:{deviceInfo.Manufacturer}");
+            
             if (!string.IsNullOrEmpty(deviceInfo.VidPid))
                 parts.Add(deviceInfo.VidPid);
         }
         
+        // Focus on relevant file types
         parts.Add("extension:c extension:cpp extension:py extension:sh extension:md extension:txt");
         
         return string.Join(" ", parts);
