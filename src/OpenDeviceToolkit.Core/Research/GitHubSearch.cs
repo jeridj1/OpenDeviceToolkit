@@ -87,12 +87,10 @@ public sealed class GitHubSearch : ResearchSourceBase
         {
             if (!string.IsNullOrEmpty(deviceInfo.Manufacturer))
                 parts.Add($"org:{deviceInfo.Manufacturer}");
-            
             if (!string.IsNullOrEmpty(deviceInfo.VidPid))
                 parts.Add(deviceInfo.VidPid);
         }
         
-        // Focus on relevant file types
         parts.Add("extension:c extension:cpp extension:py extension:sh extension:md extension:txt");
         
         return string.Join(" ", parts);
@@ -100,20 +98,16 @@ public sealed class GitHubSearch : ResearchSourceBase
     
     private double CalculateConfidence(GitHubSearchItem item)
     {
-        // Base confidence
         var confidence = 0.5;
         
-        // Boost for files with more stars
         if (item.Repository?.StargazersCount > 100)
             confidence += 0.2;
         else if (item.Repository?.StargazersCount > 10)
             confidence += 0.1;
         
-        // Boost for recent files
         if (item.Repository?.UpdatedAt > DateTime.UtcNow.AddYears(-2))
             confidence += 0.1;
         
-        // Cap at 1.0
         return Math.Min(confidence, 1.0);
     }
     
@@ -147,7 +141,6 @@ public sealed class GitHubSearch : ResearchSourceBase
     {
         try
         {
-            // Test GitHub API connectivity
             var response = await _httpClient.GetAsync("https://api.github.com", cancellationToken);
             return response.IsSuccessStatusCode;
         }
@@ -158,7 +151,6 @@ public sealed class GitHubSearch : ResearchSourceBase
     }
 }
 
-// GitHub API response models
 internal sealed class GitHubSearchResponse
 {
     [JsonPropertyName("total_count")]

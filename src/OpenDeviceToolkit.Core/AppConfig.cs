@@ -11,9 +11,6 @@ public sealed class WorkspaceConfig
     [JsonPropertyName("rootPath")]
     public string RootPath { get; set; } = "D:\\OpenDeviceToolkit";
     
-    /// <summary>
-    /// Converts this configuration to a Workspace instance.
-    /// </summary>
     public Workspace ToWorkspace() => new Workspace(RootPath);
 }
 
@@ -48,6 +45,36 @@ public sealed class LoggingConfig
 }
 
 /// <summary>
+/// Configuration for voice interaction.
+/// </summary>
+public sealed class VoiceConfig
+{
+    [JsonPropertyName("enabled")]
+    public bool Enabled { get; set; } = false;
+    
+    [JsonPropertyName("rate")]
+    public int Rate { get; set; } = 0;
+    
+    [JsonPropertyName("volume")]
+    public int Volume { get; set; } = 100;
+}
+
+/// <summary>
+/// Configuration for research engine.
+/// </summary>
+public sealed class ResearchConfig
+{
+    [JsonPropertyName("enableOnlineSearch")]
+    public bool EnableOnlineSearch { get; set; } = true;
+    
+    [JsonPropertyName("maxSearchResults")]
+    public int MaxSearchResults { get; set; } = 10;
+    
+    [JsonPropertyName("searchTimeoutSeconds")]
+    public int SearchTimeoutSeconds { get; set; } = 30;
+}
+
+/// <summary>
 /// Represents the application configuration loaded from appsettings.json.
 /// </summary>
 public sealed class AppConfig
@@ -60,16 +87,18 @@ public sealed class AppConfig
 
     [JsonPropertyName("logging")]
     public LoggingConfig Logging { get; set; } = new();
+    
+    [JsonPropertyName("voice")]
+    public VoiceConfig Voice { get; set; } = new();
+    
+    [JsonPropertyName("research")]
+    public ResearchConfig Research { get; set; } = new();
 
-    /// <summary>
-    /// Loads configuration from appsettings.json in the executable directory.
-    /// </summary>
     public static AppConfig Load()
     {
         var configPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
         if (!File.Exists(configPath))
         {
-            // Return defaults if config file doesn't exist
             return new AppConfig();
         }
 
@@ -90,9 +119,6 @@ public sealed class AppConfig
         }
     }
     
-    /// <summary>
-    /// Saves the configuration to appsettings.json.
-    /// </summary>
     public void Save()
     {
         var configPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
