@@ -12,8 +12,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Management" Version="8.0.0" />
-    <PackageReference Include="System.Text.Json" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Speech" />
   </ItemGroup>
 
 </Project>
