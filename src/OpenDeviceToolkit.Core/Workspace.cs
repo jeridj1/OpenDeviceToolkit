@@ -122,4 +122,8 @@ public sealed class Workspace
             catch (Exception ex)
             {
                 // Log error but don't fail - diagnostics should never crash the app
-                Console.Error.WriteLine($
+                Console.Error.WriteLine($"Failed to create directory {directory}: {ex.Message}");
+            }
+        }
+    }
+}
