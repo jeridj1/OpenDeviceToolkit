@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using OpenDeviceToolkit.Core;
 
 namespace OpenDeviceToolkit.Core.Research;
 
@@ -17,7 +18,7 @@ public sealed class XdaSearch : ResearchSourceBase
         _httpClient.Timeout = TimeSpan.FromSeconds(30);
     }
     
-    public override async Task<IReadOnlyList<ResearchResult>> SearchAsync(string query, Usb.UsbDeviceInfo? deviceInfo = null, CancellationToken ct = default)
+    public override async Task<IReadOnlyList<ResearchResult>> SearchAsync(string query, UsbDeviceInfo? deviceInfo = null, CancellationToken ct = default)
     {
         var results = new List<ResearchResult>();
         try
@@ -35,7 +36,7 @@ public sealed class XdaSearch : ResearchSourceBase
         return results;
     }
     
-    private string BuildSearchUrl(string query, Usb.UsbDeviceInfo? deviceInfo)
+    private string BuildSearchUrl(string query, UsbDeviceInfo? deviceInfo)
     {
         var parts = new List<string> { $"q={Uri.EscapeDataString(query)}" };
         if (deviceInfo?.Manufacturer != null) parts.Add($"manufacturer={Uri.EscapeDataString(deviceInfo.Manufacturer)}");

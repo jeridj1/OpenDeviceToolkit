@@ -1,4 +1,4 @@
-using System.Text.Json;
+using OpenDeviceToolkit.Core;
 
 namespace OpenDeviceToolkit.Core.Research;
 
@@ -45,7 +45,7 @@ public sealed class ResearchEngine : IDisposable
         }
     }
     
-    public async Task<IReadOnlyList<ResearchResult>> SearchAsync(string query, Usb.UsbDeviceInfo? deviceInfo = null, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ResearchResult>> SearchAsync(string query, UsbDeviceInfo? deviceInfo = null, CancellationToken ct = default)
     {
         var allResults = new List<ResearchResult>();
         foreach (var source in _sources.OrderByDescending(s => s.Priority))
@@ -70,7 +70,7 @@ public sealed class ResearchEngine : IDisposable
         return results.Where(r => seen.Add(r.Url)).ToList().AsReadOnly();
     }
     
-    public IReadOnlyList<ResearchHypothesis> GenerateHypotheses(IReadOnlyList<ResearchResult> results, Usb.UsbDeviceInfo? deviceInfo = null)
+    public IReadOnlyList<ResearchHypothesis> GenerateHypotheses(IReadOnlyList<ResearchResult> results, UsbDeviceInfo? deviceInfo = null)
     {
         return results.Select(r => new ResearchHypothesis(r.Title, r.EstimatedRisk, r.Confidence, new List<string> { $"Source: {r.Source}", $"URL: {r.Url}" })).ToList().AsReadOnly();
     }
@@ -93,7 +93,7 @@ public sealed class ResearchEngine : IDisposable
         catch (Exception ex) { _logger.Error($"Step failed: {ex.Message}", ex); plan.CompleteCurrentStep(false, ex.Message); return false; }
     }
     
-    public async Task<ResearchPlan> RunWorkflowAsync(string deviceId, string objective, Usb.UsbDeviceInfo? deviceInfo = null, bool autoExecute = false, CancellationToken ct = default)
+    public async Task<ResearchPlan> RunWorkflowAsync(string deviceId, string objective, UsbDeviceInfo? deviceInfo = null, bool autoExecute = false, CancellationToken ct = default)
     {
         var session = StartSession(deviceId, objective);
         var results = await SearchAsync(objective, deviceInfo, ct);
