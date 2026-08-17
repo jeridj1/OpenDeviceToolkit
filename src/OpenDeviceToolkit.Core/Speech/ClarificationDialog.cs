@@ -5,7 +5,7 @@ public static class ClarificationDialog
     public static ClarificationRequest GenerateClarification(string input, IReadOnlyList<VoiceCommand> possibleCommands)
     {
         if (possibleCommands.Count == 0) return new ClarificationRequest(false, "I didn't understand that. Could you rephrase?");
-        if (possibleCommands.Count == 1) return new ClarificationRequest(true, possibleCommands[0]);
+        if (possibleCommands.Count == 1) return new ClarificationRequest(true, possibleCommands[0].Type.GetDescription(), possibleCommands[0]);
         var options = possibleCommands.Select(c => c.Type.GetDescription()).ToList();
         return new ClarificationRequest(false, $"Did you mean:\r\n1. {options[0]}\r\n2. {options[1]}\r\n{(options.Count > 2 ? $"3. {options[2]}\r\n" : "")}Please say the number.");
     }
