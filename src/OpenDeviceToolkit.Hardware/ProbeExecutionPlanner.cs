@@ -1,5 +1,6 @@
 namespace OpenDeviceToolkit.Hardware;
 
+public sealed record Rp2040PinAssignment(string Signal, int Gpio);
 public sealed record ProbeElectricalState(double? TargetVoltage, double? MaximumSafeVoltage, bool VoltageKnown, bool DriveAllowed, string Reason);
 public sealed record ProbeExecutionPlan(ProbeModeProfile Mode, IReadOnlyList<Rp2040PinAssignment> Pins, ProbeElectricalState ElectricalState, IReadOnlyList<string> Actions);
 
