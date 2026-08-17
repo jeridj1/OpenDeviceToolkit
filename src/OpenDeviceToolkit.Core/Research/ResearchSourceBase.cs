@@ -1,3 +1,5 @@
+using OpenDeviceToolkit.Core;
+
 namespace OpenDeviceToolkit.Core.Research;
 
 /// <summary>
@@ -10,7 +12,7 @@ public abstract class ResearchSourceBase : IResearchSource
     
     public abstract Task<IReadOnlyList<ResearchResult>> SearchAsync(
         string query,
-        Usb.UsbDeviceInfo? deviceInfo = null,
+        UsbDeviceInfo? deviceInfo = null,
         CancellationToken cancellationToken = default);
     
     public virtual Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default) => 
