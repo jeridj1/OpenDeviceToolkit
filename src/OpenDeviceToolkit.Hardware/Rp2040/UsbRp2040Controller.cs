@@ -7,7 +7,7 @@ public sealed class UsbRp2040Controller : Rp2040ControllerBase
     private UsbHidDevice? _device;
     private bool _isOpen = false;
     public override Rp2040Mode CurrentMode { get; protected set; } = Rp2040Mode.Gpio;
-    public override bool IsConnected => _isOpen && _device != null;
+    public override bool IsConnected { get => _isOpen && _device != null; protected set => _isOpen = value; }
     public override IReadOnlyList<Rp2040Mode> AvailableModes { get; } = new List<Rp2040Mode>
     {
         Rp2040Mode.Gpio, Rp2040Mode.Uart, Rp2040Mode.Spi, Rp2040Mode.I2c,
@@ -97,8 +97,7 @@ public sealed class UsbRp2040Controller : Rp2040ControllerBase
             for (int j = 0; j < chunkSize; j++)
             {
                 var states = new List<bool>();
-                for (int p = 0; p < pins.Count; p++)
-                    states.Add(data.Length > j * pins.Count + p && data[j * pins.Count + p] != 0);
+                for (int p = 0; p < pins.Count; p++) states.Add(data.Length > j * pins.Count + p && data[j * pins.Count + p] != 0);
                 samples.Add(new LogicSample(TimeSpan.FromSeconds(i / (double)sampleRateHz), states.AsReadOnly()));
             }
         }
@@ -170,59 +169,22 @@ public sealed class UsbHidDevice : IDisposable
 {
     private bool _isOpen = false;
     public string DeviceInstanceId { get; }
-    
     private UsbHidDevice(string deviceInstanceId) => DeviceInstanceId = deviceInstanceId;
-    
     public static async Task<UsbHidDevice?> OpenAsync(string deviceInstanceId, CancellationToken ct)
     {
-        try
-        {
-            var device = new UsbHidDevice(deviceInstanceId);
-            await device.OpenInternalAsync(ct);
-            return device;
-        }
+        try { var device = new UsbHidDevice(deviceInstanceId); await device.OpenInternalAsync(ct); return device; }
         catch { return null; }
     }
-    
-    private async Task OpenInternalAsync(CancellationToken ct)
-    {
-        await Task.Delay(100, ct);
-        _isOpen = true;
-    }
-    
-    public async Task CloseAsync(CancellationToken ct)
-    {
-        await Task.Delay(100, ct);
-        _isOpen = false;
-    }
-    
-    public async Task<int> WriteAsync(byte[] data, CancellationToken ct)
-    {
-        if (!_isOpen) throw new InvalidOperationException("Device not open");
-        await Task.Delay(10, ct);
-        return data.Length;
-    }
-    
+    private async Task OpenInternalAsync(CancellationToken ct) { await Task.Delay(100, ct); _isOpen = true; }
+    public async Task CloseAsync(CancellationToken ct) { await Task.Delay(100, ct); _isOpen = false; }
+    public async Task<int> WriteAsync(byte[] data, CancellationToken ct) { if (!_isOpen) throw new InvalidOperationException("Device not open"); await Task.Delay(10, ct); return data.Length; }
     public async Task<int> ReadAsync(byte[] buffer, CancellationToken ct)
     {
         if (!_isOpen) throw new InvalidOperationException("Device not open");
         await Task.Delay(10, ct);
-        if (buffer.Length > 0)
-        {
-            var response = System.Text.Encoding.ASCII.GetBytes("OK\n");
-            var copyLength = Math.Min(response.Length, buffer.Length);
-            Array.Copy(response, buffer, copyLength);
-            return copyLength;
-        }
+        if (buffer.Length > 0) { var response = System.Text.Encoding.ASCII.GetBytes("OK\n"); var copyLength = Math.Min(response.Length, buffer.Length); Array.Copy(response, buffer, copyLength); return copyLength; }
         return 0;
     }
-    
-    public async Task<byte[]> ReadAsync(int count, CancellationToken ct)
-    {
-        var buffer = new byte[count];
-        var bytesRead = await ReadAsync(buffer, ct);
-        return bytesRead < count ? buffer.AsSpan(0, bytesRead).ToArray() : buffer;
-    }
-    
-    public void Dispose() => CloseAsync().Wait();
+    public async Task<byte[]> ReadAsync(int count, CancellationToken ct) { var buffer = new byte[count]; var bytesRead = await ReadAsync(buffer, ct); return bytesRead < count ? buffer.AsSpan(0, bytesRead).ToArray() : buffer; }
+    public void Dispose() => CloseAsync(CancellationToken.None).Wait();
 }
