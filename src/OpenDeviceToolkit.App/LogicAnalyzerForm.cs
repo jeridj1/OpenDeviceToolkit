@@ -1,3 +1,4 @@
+using OpenDeviceToolkit.Core;
 using OpenDeviceToolkit.Hardware.Rp2040;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -38,218 +39,95 @@ public sealed class LogicAnalyzerForm : Form
         _pinColors.AddRange(new[] {
             Color.Red, Color.Blue, Color.Green, Color.Purple, Color.Orange,
             Color.DarkCyan, Color.Magenta, Color.Brown, Color.Pink, Color.Olive,
-            Color.DarkGreen, Color.DarkBlue, Color.DarkRed, Color.Gold, Color.Silver
+            Color.Teal, Color.Navy, Color.Maroon, Color.Gray, Color.Lime
         });
     }
-    
+
     private void InitializeComponents()
     {
-        Text = "RP2040 Logic Analyzer";
-        Size = new Size(1000, 600);
+        Text = "OpenDeviceToolkit Logic Analyzer";
+        Width = 1200;
+        Height = 800;
         StartPosition = FormStartPosition.CenterParent;
-        
-        // Left control panel
-        var leftPanel = new Panel { 
-            Width = 200, 
-            Dock = DockStyle.Left, 
-            BackColor = SystemColors.ControlLight 
-        };
-        
-        leftPanel.Controls.Add(new Label { 
-            Text = "Select Pins to Monitor:", 
-            Location = new Point(10, 10), 
-            AutoSize = true 
-        });
-        
-        _pinListBox.Location = new Point(10, 30);
-        _pinListBox.Size = new Size(180, 200);
-        _pinListBox.CheckOnClick = true;
-        for (int i = 0; i < 30; i++) _pinListBox.Items.Add($"GP{i}");
-        leftPanel.Controls.Add(_pinListBox);
-        
-        leftPanel.Controls.Add(new Label { 
-            Text = "Sample Rate (Hz):", 
-            Location = new Point(10, 240), 
-            AutoSize = true 
-        });
-        _sampleRateInput.Location = new Point(10, 260);
-        _sampleRateInput.Width = 180;
-        _sampleRateInput.Minimum = 1;
-        _sampleRateInput.Maximum = 1000000;
-        _sampleRateInput.Value = 100000;
-        leftPanel.Controls.Add(_sampleRateInput);
-        
-        leftPanel.Controls.Add(new Label { 
-            Text = "Duration (ms):", 
-            Location = new Point(10, 290), 
-            AutoSize = true 
-        });
-        _durationInput.Location = new Point(10, 310);
-        _durationInput.Width = 180;
-        _durationInput.Minimum = 1;
-        _durationInput.Maximum = 10000;
-        _durationInput.Value = 100;
-        leftPanel.Controls.Add(_durationInput);
-        
-        _captureButton.Text = "Start Capture";
-        _captureButton.Location = new Point(10, 340);
-        _captureButton.Width = 180;
-        _captureButton.Click += async (s, e) => await StartCaptureAsync();
-        leftPanel.Controls.Add(_captureButton);
-        
-        _stopButton.Text = "Stop Capture";
-        _stopButton.Location = new Point(10, 370);
-        _stopButton.Width = 180;
-        _stopButton.Click += CancelCapture;
-        _stopButton.Enabled = false;
-        leftPanel.Controls.Add(_stopButton);
-        
-        _statusLabel.Location = new Point(10, 400);
-        _statusLabel.AutoSize = true;
-        _statusLabel.Text = "Ready";
-        leftPanel.Controls.Add(_statusLabel);
-        
-        Controls.Add(leftPanel);
-        
-        // Graph display panel
         _graphPanel.Dock = DockStyle.Fill;
-        _graphPanel.BackColor = Color.White;
-        _graphPanel.Paint += OnGraphPaint;
+        _graphPanel.Paint += (_, e) => DrawCapture(e.Graphics);
         Controls.Add(_graphPanel);
-        
-        Shown += async (s, e) => await InitializeAsync();
+        var controls = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 70, AutoSize = false };
+        _pinListBox.Width = 180;
+        for (var pin = 0; pin < 30; pin++) _pinListBox.Items.Add($"GPIO {pin}", pin < 4);
+        controls.Controls.Add(_pinListBox);
+        controls.Controls.Add(new Label { Text = "Sample rate", AutoSize = true, Margin = new Padding(8, 8, 2, 0) });
+        _sampleRateInput.Minimum = 1;
+        _sampleRateInput.Maximum = 10_000_000;
+        _sampleRateInput.Value = 100_000;
+        _sampleRateInput.Width = 100;
+        controls.Controls.Add(_sampleRateInput);
+        controls.Controls.Add(new Label { Text = "Duration ms", AutoSize = true, Margin = new Padding(8, 8, 2, 0) });
+        _durationInput.Minimum = 1;
+        _durationInput.Maximum = 60_000;
+        _durationInput.Value = 1000;
+        _durationInput.Width = 80;
+        controls.Controls.Add(_durationInput);
+        _captureButton.Text = "Capture";
+        _captureButton.Click += async (_, _) => await CaptureAsync();
+        controls.Controls.Add(_captureButton);
+        _stopButton.Text = "Stop";
+        _stopButton.Enabled = false;
+        _stopButton.Click += (_, _) => _captureCancellation?.Cancel();
+        controls.Controls.Add(_stopButton);
+        _statusLabel.AutoSize = true;
+        controls.Controls.Add(_statusLabel);
+        Controls.Add(controls);
+        _graphPanel.BringToFront();
     }
-    
-    private async Task InitializeAsync()
+
+    private async Task CaptureAsync()
     {
-        try
-        {
-            if (!_rp2040Controller.IsConnected)
-            {
-                _statusLabel.Text = "Connecting to RP2040...";
-                if (!await _rp2040Controller.ConnectAsync())
-                {
-                    _statusLabel.Text = "Not connected";
-                    MessageBox.Show(this, "Could not connect to RP2040", "Connection Error", 
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-            }
-            
-            _statusLabel.Text = "Switching to Logic Analyzer mode...";
-            await _rp2040Controller.SwitchModeAsync(Rp2040Mode.LogicAnalyzer);
-            _statusLabel.Text = "Ready to capture";
-            _logger.Info("Logic Analyzer initialized");
-        }
-        catch (Exception ex)
-        {
-            _statusLabel.Text = $"Error: {ex.Message}";
-            _logger.Error("Logic analyzer initialization failed", ex);
-        }
-    }
-    
-    private async Task StartCaptureAsync()
-    {
-        var selectedIndices = _pinListBox.CheckedIndices.Cast<int>().ToList();
-        if (selectedIndices.Count == 0)
-        {
-            MessageBox.Show(this, "Select at least one pin", "Error", 
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-        
-        var pins = selectedIndices.ToList();
-        var sampleRate = (int)_sampleRateInput.Value;
-        var duration = TimeSpan.FromMilliseconds((double)_durationInput.Value);
-        
+        var pins = _pinListBox.CheckedItems.Cast<string>().Select(s => int.Parse(s.AsSpan(5))).ToList();
+        if (pins.Count == 0) { _statusLabel.Text = "Select at least one pin."; return; }
+        _captureCancellation?.Dispose();
+        _captureCancellation = new CancellationTokenSource();
         _captureButton.Enabled = false;
         _stopButton.Enabled = true;
-        _statusLabel.Text = "Capturing...";
-        _graphPanel.Invalidate();
-        
-        _captureCancellation = new CancellationTokenSource();
-        
         try
         {
-            _currentCapture = await _rp2040Controller.CaptureLogicAsync(
-                pins, duration, sampleRate, _captureCancellation.Token);
-            
-            _statusLabel.Text = $"Captured {_currentCapture.Samples.Count} samples";
-            _logger.Info($"Captured {_currentCapture.Samples.Count} samples from {pins.Count} pins");
+            _statusLabel.Text = "Capturing...";
+            _currentCapture = await _rp2040Controller.CaptureLogicAsync(pins, TimeSpan.FromMilliseconds((double)_durationInput.Value), (int)_sampleRateInput.Value, _captureCancellation.Token);
+            _statusLabel.Text = $"Captured {_currentCapture.Samples.Count} samples.";
             _graphPanel.Invalidate();
         }
-        catch (Exception ex)
-        {
-            _statusLabel.Text = $"Error: {ex.Message}";
-            _logger.Error("Capture failed", ex);
-        }
-        finally
-        {
-            _captureButton.Enabled = true;
-            _stopButton.Enabled = false;
-        }
+        catch (OperationCanceledException) { _statusLabel.Text = "Capture cancelled."; }
+        catch (Exception ex) { _logger.Error($"Logic capture failed: {ex.Message}", ex); _statusLabel.Text = $"Capture failed: {ex.Message}"; }
+        finally { _captureButton.Enabled = true; _stopButton.Enabled = false; }
     }
-    
-    private void CancelCapture(object? sender, EventArgs e)
+
+    private void DrawCapture(Graphics g)
     {
-        _captureCancellation?.Cancel();
-        _statusLabel.Text = "Capture cancelled";
-        _captureButton.Enabled = true;
-        _stopButton.Enabled = false;
-        _logger.Info("Capture cancelled by user");
-    }
-    
-    private void OnGraphPaint(object? sender, PaintEventArgs e)
-    {
-        if (_currentCapture == null) return;
-        
-        var graphics = e.Graphics;
-        graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        
-        var width = _graphPanel.Width;
-        var height = _graphPanel.Height;
-        
-        // Draw grid
-        using var gridPen = new Pen(Color.LightGray);
-        for (int x = 0; x < width; x += 50)
-            graphics.DrawLine(gridPen, x, 0, x, height);
-        for (int y = 0; y < height; y += 50)
-            graphics.DrawLine(gridPen, 0, y, width, y);
-        
-        // Draw waveforms
-        var samples = _currentCapture.Samples;
+        g.Clear(BackColor);
+        if (_currentCapture == null || _currentCapture.Samples.Count == 0) return;
         var pins = _currentCapture.Pins;
-        var timeScale = width / (float)_currentCapture.Duration.TotalSeconds;
-        var voltageScale = height / (float)(pins.Count + 1);
-        
-        for (int p = 0; p < pins.Count; p++)
+        var width = Math.Max(1, _graphPanel.ClientSize.Width - 20);
+        var rowHeight = Math.Max(20, _graphPanel.ClientSize.Height / Math.Max(1, pins.Count));
+        for (var p = 0; p < pins.Count; p++)
         {
-            if (p >= _pinColors.Count) break;
-            
-            var color = _pinColors[p];
-            using var pen = new Pen(color, 2);
-            
-            var points = new List<PointF>();
-            for (int i = 0; i < samples.Count; i++)
+            var y = p * rowHeight + rowHeight / 2;
+            using var pen = new Pen(_pinColors[p % _pinColors.Count], 1);
+            g.DrawString($"GPIO {pins[p]}", Font, Brushes.Black, 4, p * rowHeight + 2);
+            var previous = false;
+            for (var i = 0; i < _currentCapture.Samples.Count; i++)
             {
-                var time = (float)samples[i].Timestamp.TotalSeconds;
-                var x = time * timeScale;
-                
-                var pinIndexInSample = pins.IndexOf(p);
-                var isHigh = pinIndexInSample >= 0 && 
-                           pinIndexInSample < samples[i].PinStates.Count && 
-                           samples[i].PinStates[pinIndexInSample];
-                
-                var y = height - (p + 0.5f + (isHigh ? 0.3f : -0.3f)) * voltageScale;
-                points.Add(new PointF(x, y));
+                var x = 70 + i * (width - 70) / (float)Math.Max(1, _currentCapture.Samples.Count - 1);
+                var state = p < _currentCapture.Samples[i].States.Count && _currentCapture.Samples[i].States[p];
+                if (i > 0 && state != previous) g.DrawLine(pen, x, state ? y - rowHeight / 3 : y + rowHeight / 3, x, previous ? y - rowHeight / 3 : y + rowHeight / 3);
+                g.DrawLine(pen, i == 0 ? 70 : x, state ? y - rowHeight / 3 : y + rowHeight / 3, x, state ? y - rowHeight / 3 : y + rowHeight / 3);
+                previous = state;
             }
-            
-            if (points.Count > 1)
-                graphics.DrawLines(pen, points.ToArray());
-            
-            // Draw pin label
-            graphics.DrawString($"GP{pins[p]}", Font, Brushes.Black, 
-                new PointF(5, height - (p + 0.5f) * voltageScale - 10));
         }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _captureCancellation?.Dispose();
+        base.Dispose(disposing);
     }
 }
