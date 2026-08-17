@@ -13,21 +13,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-
     - name: Restore dependencies
       run: dotnet restore
-
     - name: Build
       run: dotnet build --no-restore --configuration Release
-
     - name: Publish App
-      run: dotnet publish src/OpenDeviceToolkit.App --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -o ./publish
-
+      run: dotnet publish src/OpenDeviceToolkit.App --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
