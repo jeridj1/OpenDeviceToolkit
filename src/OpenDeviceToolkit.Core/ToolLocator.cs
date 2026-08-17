@@ -207,6 +207,8 @@ public sealed class ToolLocator
     private IEnumerable<string> GetPathCandidates(string executableName, string[] names)
     {
         var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        var candidates = new List<string>();
+
         foreach (var directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
         {
             try
@@ -219,13 +221,18 @@ public sealed class ToolLocator
 
                 foreach (var name in names)
                 {
-                    yield return Path.Combine(trimmedDir, name);
+                    candidates.Add(Path.Combine(trimmedDir, name));
                 }
             }
             catch (ArgumentException)
             {
                 // Ignore malformed PATH entries
             }
+        }
+
+        foreach (var candidate in candidates)
+        {
+            yield return candidate;
         }
     }
 
