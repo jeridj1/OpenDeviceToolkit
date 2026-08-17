@@ -8,4 +8,25 @@
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- The RP2040 and probe APIs currently have both a legacy monolithic implementation
+       and newer split files. Keep the monolithic implementation as the single source
+       of these types until the two layouts are reconciled. -->
+  <ItemGroup>
+    <Compile Remove="Rp2040BridgeProtocol.cs" />
+    <Compile Remove="ProbeSafety.cs" />
+    <Compile Remove="UartAnalyzer.cs" />
+    <Compile Remove="ProbePlan.cs" />
+    <Compile Remove="ProbeModes.cs" />
+    <Compile Remove="Rp2040/Rp2040ControllerBase.cs" />
+    <Compile Remove="Rp2040/Rp2040ControllerFactory.cs" />
+    <Compile Remove="Rp2040/MockRp2040Controller.cs" />
+    <Compile Remove="Rp2040/SerialRp2040Controller.cs" />
+    <Compile Remove="Rp2040/UsbRp2040Controller.cs" />
+  </ItemGroup>
+
 </Project>
