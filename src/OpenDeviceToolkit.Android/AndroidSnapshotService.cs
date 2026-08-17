@@ -7,7 +7,7 @@ public sealed record AndroidSnapshot(string CreatedUtc, string Serial, string Ma
 /// <summary>Captures device state so later scans can be compared without modifying the phone.</summary>
 public sealed class AndroidSnapshotService
 {
-    public AndroidSnapshot Capture(AndroidDevice device, IReadOnlyList<AndroidDiagnosticResult> diagnostics) => new(DateTimeOffset.UtcNow.ToString("O"), device.Serial, device.Manufacturer, device.Model, device.AndroidVersion, device.SecurityPatch, device.Platform, device.BootState, device.FlashLocked, device.Slot, new Dictionary<string, string>(device.Properties), diagnostics.ToArray());
+    public AndroidSnapshot Capture(AndroidDevice device, IReadOnlyList<AndroidDiagnosticResult> diagnostics) => new(DateTimeOffset.UtcNow.ToString("O"), device.Serial, device.Manufacturer, device.Model, device.AndroidVersion, device.SecurityPatch, device.Platform, device.BootState, ParseFlashLocked(device.FlashLocked), device.Slot, new Dictionary<string, string>(device.Properties), diagnostics.ToArray());
 
     public string Save(AndroidSnapshot snapshot, string directory)
     {
@@ -18,6 +18,13 @@ public sealed class AndroidSnapshotService
         File.WriteAllText(path, JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true }));
         return path;
     }
+
+    private static bool? ParseFlashLocked(string value) => value.Trim().ToLowerInvariant() switch
+    {
+        "1" or "true" or "yes" => true,
+        "0" or "false" or "no" => false,
+        _ => null
+    };
 
     public static IReadOnlyList<string> Compare(AndroidSnapshot before, AndroidSnapshot after)
     {
