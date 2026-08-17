@@ -1,3 +1,5 @@
+using OpenDeviceToolkit.Core;
+
 namespace OpenDeviceToolkit.Core.Research;
 
 public sealed class OfflineResearcher : ResearchSourceBase
@@ -15,7 +17,7 @@ public sealed class OfflineResearcher : ResearchSourceBase
         _knownDevices["Qualcomm"] = new DeviceFingerprint { Manufacturer = "Qualcomm", Model = "Snapdragon", Exploits = new[] { "CVE-2019-2215" }, KnownMethods = new[] { "EDL Mode (9008)" } };
     }
     
-    public override async Task<IReadOnlyList<ResearchResult>> SearchAsync(string query, Usb.UsbDeviceInfo? deviceInfo = null, CancellationToken ct = default)
+    public override async Task<IReadOnlyList<ResearchResult>> SearchAsync(string query, UsbDeviceInfo? deviceInfo = null, CancellationToken ct = default)
     {
         var results = new List<ResearchResult>();
         results.AddRange(GenerateHypotheses(query, deviceInfo));
@@ -23,7 +25,7 @@ public sealed class OfflineResearcher : ResearchSourceBase
         return results;
     }
     
-    private IEnumerable<ResearchResult> GenerateHypotheses(string query, Usb.UsbDeviceInfo? deviceInfo)
+    private IEnumerable<ResearchResult> GenerateHypotheses(string query, UsbDeviceInfo? deviceInfo)
     {
         var q = query.ToLower();
         if (q.Contains("qualcomm") || q.Contains("edl")) yield return ResearchResult.Create("Qualcomm EDL Mode (9008)", "Offline DB", "https://wiki.postmarketos.org/wiki/Qualcomm_Snapdragon_855", confidence: 0.7, estimatedRisk: RiskLevel.PotentialBrick, tags: new[] { "qualcomm", "edl" });
@@ -32,7 +34,7 @@ public sealed class OfflineResearcher : ResearchSourceBase
         if (q.Contains("root") || q.Contains("magisk")) yield return ResearchResult.Create("Magisk Root", "Offline DB", "https://github.com/topjohnwu/Magisk", confidence: 0.8, estimatedRisk: RiskLevel.PersistentWrite, tags: new[] { "magisk" });
     }
     
-    private IEnumerable<ResearchResult> ResearchByDeviceInfo(Usb.UsbDeviceInfo deviceInfo)
+    private IEnumerable<ResearchResult> ResearchByDeviceInfo(UsbDeviceInfo deviceInfo)
     {
         if (_knownDevices.TryGetValue(deviceInfo.Manufacturer, out var fp) || _knownDevices.TryGetValue(deviceInfo.DisplayName, out fp))
         {
