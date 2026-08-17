@@ -2,8 +2,8 @@ namespace OpenDeviceToolkit.Hardware.Rp2040;
 
 public abstract class Rp2040ControllerBase : IRp2040Controller
 {
-    public abstract Rp2040Mode CurrentMode { get; }
-    public abstract bool IsConnected { get; }
+    public abstract Rp2040Mode CurrentMode { get; protected set; }
+    public abstract bool IsConnected { get; protected set; }
     public abstract IReadOnlyList<Rp2040Mode> AvailableModes { get; }
     public abstract Task<bool> ConnectAsync(CancellationToken ct = default);
     public abstract Task DisconnectAsync(CancellationToken ct = default);
