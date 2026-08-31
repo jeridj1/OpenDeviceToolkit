@@ -293,6 +293,143 @@ public static class PinoutDatabase
                     }
                 }
             };
+
+        // nRF52840 (Nordic Semiconductor)
+        if (!_database.ContainsKey("NRF52840"))
+            _database["NRF52840"] = new ChipPinout
+            {
+                Name = "nRF52840",
+                Manufacturer = "Nordic Semiconductor",
+                Description = "nRF52840 ARM Cortex-M4F with Bluetooth 5",
+                UsbVids = new List<string> { "1915" },
+                UsbPids = new List<string> { "521F" },
+                ProgrammingInterfaces = new List<ProgrammingInterface>
+                {
+                    new ProgrammingInterface
+                    {
+                        Type = "SWD",
+                        ClockPin = 24,
+                        DataPin = 25,
+                        Voltage = 3.3,
+                        Notes = "P0.24=SWCLK, P0.25=SWDIO. Standard ARM SWD interface."
+                    },
+                    new ProgrammingInterface
+                    {
+                        Type = "UART",
+                        DataPin = 6,
+                        Voltage = 3.3,
+                        Notes = "P0.06=TX, P0.08=RX. Baud rate: 115200."
+                    }
+                }
+            };
+
+        // SAMD21G18 (Microchip / Adafruit Feather M0)
+        if (!_database.ContainsKey("SAMD21"))
+            _database["SAMD21"] = new ChipPinout
+            {
+                Name = "SAMD21G18",
+                Manufacturer = "Microchip",
+                Description = "ATSAMD21G18 ARM Cortex-M0+",
+                UsbVids = new List<string> { "239A" },
+                UsbPids = new List<string> { "800B", "8015" },
+                ProgrammingInterfaces = new List<ProgrammingInterface>
+                {
+                    new ProgrammingInterface
+                    {
+                        Type = "SWD",
+                        ClockPin = 30,
+                        DataPin = 31,
+                        Voltage = 3.3,
+                        Notes = "PA30=SWCLK, PA31=SWDIO. 10-pin Cortex Debug connector."
+                    },
+                    new ProgrammingInterface
+                    {
+                        Type = "UART",
+                        DataPin = 10,
+                        Voltage = 3.3,
+                        Notes = "PA10=TX, PA11=RX. Baud rate: 9600 default."
+                    }
+                }
+            };
+
+        // STM32F407 (STM32F4 Discovery / Black F407)
+        if (!_database.ContainsKey("STM32F407"))
+            _database["STM32F407"] = new ChipPinout
+            {
+                Name = "STM32F407",
+                Manufacturer = "STMicroelectronics",
+                Description = "STM32F407 ARM Cortex-M4F",
+                UsbVids = new List<string> { "0483" },
+                UsbPids = new List<string> { "374B", "DF11" },
+                ProgrammingInterfaces = new List<ProgrammingInterface>
+                {
+                    new ProgrammingInterface
+                    {
+                        Type = "SWD",
+                        ClockPin = 49,
+                        DataPin = 46,
+                        Voltage = 3.3,
+                        Notes = "PA14=SWCLK, PA13=SWDIO. Standard ARM SWD interface."
+                    },
+                    new ProgrammingInterface
+                    {
+                        Type = "UART",
+                        DataPin = 41,
+                        Voltage = 3.3,
+                        Notes = "PA9=TX, PA10=RX. Baud rate: 115200."
+                    }
+                }
+            };
+
+        // ESP8266 (Espressif)
+        if (!_database.ContainsKey("ESP8266"))
+            _database["ESP8266"] = new ChipPinout
+            {
+                Name = "ESP8266",
+                Manufacturer = "Espressif",
+                Description = "ESP8266 32-bit Tensilica L106",
+                UsbVids = new List<string> { "1A86", "10C4" },
+                UsbPids = new List<string> { "7523", "EA60" },
+                ProgrammingInterfaces = new List<ProgrammingInterface>
+                {
+                    new ProgrammingInterface
+                    {
+                        Type = "UART",
+                        DataPin = 1,
+                        Voltage = 3.3,
+                        Notes = "TX=GPIO1, RX=GPIO3. Baud rate: 115200. Pull GPIO0 low for flash mode."
+                    }
+                }
+            };
+
+        // CH32V003 (WCH)
+        if (!_database.ContainsKey("CH32V003"))
+            _database["CH32V003"] = new ChipPinout
+            {
+                Name = "CH32V003",
+                Manufacturer = "WCH",
+                Description = "CH32V003 32-bit RISC-V (QingKe V2)",
+                UsbVids = new List<string> { "4348" },
+                UsbPids = new List<string> { "55C0", "55D0" },
+                ProgrammingInterfaces = new List<ProgrammingInterface>
+                {
+                    new ProgrammingInterface
+                    {
+                        Type = "SWD",
+                        ClockPin = 1,
+                        DataPin = 2,
+                        Voltage = 3.3,
+                        Notes = "PD1=SWCLK, PD2=SWDIO. WCH-Link programmer required."
+                    },
+                    new ProgrammingInterface
+                    {
+                        Type = "UART",
+                        DataPin = 6,
+                        Voltage = 3.3,
+                        Notes = "PD6=TX, PD5=RX. Baud rate: 115200."
+                    }
+                }
+            };
     }
     
     private static void SaveDatabase()
