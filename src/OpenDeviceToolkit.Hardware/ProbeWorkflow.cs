@@ -53,14 +53,14 @@ public sealed class ProbeWorkflow
                 caps.Add(new ProbeWorkflowCapability(
                     iface.Type + " (known pinout)",
                     "Pinout for " + pinout.Name + " is in the database.",
-                    available: true));
+                    Available: true));
         }
         else
         {
             caps.Add(new ProbeWorkflowCapability(
                 "Known-chip programming interface",
                 "No matching pinout in the database.",
-                available: false));
+                Available: false));
         }
 
         return caps;
@@ -102,8 +102,8 @@ public sealed class ProbeWorkflow
                 voltage = null;
             }
             observations.Add(new ProbeWorkflowObservation("Target voltage (GPIO26)", voltage is > 0 ? voltage.Value.ToString("0.0") + "V" : "unknown", voltage is > 0));
-            observations.Add(new ProbeWorkflowObservation("Controller mode", _controller.CurrentMode.ToString(), success: true));
-            observations.Add(new ProbeWorkflowObservation("Available modes", string.Join(", ", _controller.AvailableModes), success: true));
+            observations.Add(new ProbeWorkflowObservation("Controller mode", _controller.CurrentMode.ToString(), Success: true));
+            observations.Add(new ProbeWorkflowObservation("Available modes", string.Join(", ", _controller.AvailableModes), Success: true));
 
             try
             {
@@ -112,7 +112,7 @@ public sealed class ProbeWorkflow
             }
             catch (Exception ex)
             {
-                observations.Add(new ProbeWorkflowObservation("Logic activity (GP0/GP1)", "capture failed: " + ex.Message, success: false));
+                observations.Add(new ProbeWorkflowObservation("Logic activity (GP0/GP1)", "capture failed: " + ex.Message, Success: false));
             }
         }
 
