@@ -38,6 +38,7 @@ public sealed class MainForm : Form
     private readonly Button _researchButton = new();
     private readonly Button _rp2040Button = new();
     private readonly Button _firmwareButton = new();
+    private readonly Button _fastbootButton = new();
     private readonly CheckBox _eWasteModeCheckBox = new();
     private readonly Panel _voicePanel = new();
     private readonly TextBox _voiceInput = new();
@@ -91,6 +92,7 @@ public sealed class MainForm : Form
         _rp2040Button.Text = "RP2040 Bridge"; _rp2040Button.AutoSize = true; _rp2040Button.Location = new Point(295, 130); _rp2040Button.Click += async (_, _) => await ShowRp2040DialogAsync();
         _eWasteModeCheckBox.Text = "E-Waste Mode"; _eWasteModeCheckBox.AutoSize = true; _eWasteModeCheckBox.Location = new Point(440, 132); _eWasteModeCheckBox.CheckedChanged += (_, _) => { _eWasteMode = _eWasteModeCheckBox.Checked; UpdateEwasteMode(); };
         _firmwareButton.Text = "Validate Firmware"; _firmwareButton.AutoSize = true; _firmwareButton.Location = new Point(590, 130); _firmwareButton.Click += async (_, _) => await ValidateFirmwareAsync();
+        _fastbootButton.Text = "Fastboot"; _fastbootButton.AutoSize = true; _fastbootButton.Location = new Point(740, 130); _fastbootButton.Click += async (_, _) => await ListFastbootDevicesAsync();
         _rebootButton.Text = "Reboot"; _rebootButton.AutoSize = true; _rebootButton.Location = new Point(24, 335); _rebootButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootSystem);
         _bootloaderButton.Text = "Reboot Bootloader"; _bootloaderButton.AutoSize = true; _bootloaderButton.Location = new Point(110, 335); _bootloaderButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootBootloader);
         _recoveryButton.Text = "Reboot Recovery"; _recoveryButton.AutoSize = true; _recoveryButton.Location = new Point(270, 335); _recoveryButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootRecovery);
@@ -109,7 +111,7 @@ public sealed class MainForm : Form
         _clarificationOption2.AutoSize = true; _clarificationOption2.Location = new Point(150, 40); _clarificationOption2.Click += (_, _) => HandleClarification(2);
         _clarificationOption3.AutoSize = true; _clarificationOption3.Location = new Point(280, 40); _clarificationOption3.Click += (_, _) => HandleClarification(3);
         _clarificationPanel.Controls.AddRange(new Control[] { _clarificationLabel, _clarificationOption1, _clarificationOption2, _clarificationOption3 });
-        Controls.AddRange(new Control[] { title, subtitle, _scanButton, reportButton, workspaceButton, _environmentButton, _deepScanButton, _usbScanButton, _voiceToggleButton, _researchButton, _rp2040Button, _eWasteModeCheckBox, _firmwareButton, _rebootButton, _bootloaderButton, _recoveryButton, _deviceSummary, _status, _output, _voicePanel, _clarificationPanel });
+        Controls.AddRange(new Control[] { title, subtitle, _scanButton, reportButton, workspaceButton, _environmentButton, _deepScanButton, _usbScanButton, _voiceToggleButton, _researchButton, _rp2040Button, _eWasteModeCheckBox, _firmwareButton, _fastbootButton, _rebootButton, _bootloaderButton, _recoveryButton, _deviceSummary, _status, _output, _voicePanel, _clarificationPanel });
         SetActionButtons(false); SetOperationButtons(false); Shown += async (_, _) => await ScanAsync();
     }
 
@@ -210,6 +212,52 @@ public sealed class MainForm : Form
         }
     }
 
+    private async Task ListFastbootDevicesAsync()
+    {
+        try
+        {
+            var fastboot = _tools.Find("fastboot");
+            if (!fastboot.Found || string.IsNullOrWhiteSpace(fastboot.Path))
+            {
+                _status.Text = "Status\r\n------\r\nFastboot not found.\r\nPlace fastboot.exe in the ODT Tools folder or on PATH.";
+                Speak("Fastboot not found");
+                return;
+            }
+            _status.Text = "Status\r\n------\r\nChecking fastboot devices...\r\n";
+            var fbManager = new FastbootManager(_runner, fastboot.Path);
+            if (!await fbManager.IsAvailableAsync())
+            {
+                _status.Text += "Fastboot could not be started.\r\n";
+                Speak("Fastboot unavailable");
+                return;
+            }
+            var devices = await fbManager.GetDevicesAsync();
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Fastboot Devices");
+            sb.AppendLine("=================");
+            sb.AppendLine();
+            if (devices.Count == 0)
+            {
+                sb.AppendLine("No devices in fastboot mode.");
+                sb.AppendLine("Reboot the device to bootloader: power off, hold Volume Down + Power.");
+            }
+            else
+            {
+                foreach (var d in devices)
+                    sb.AppendLine($"Serial: {d.Serial}  State: {d.State}");
+            }
+            _output.Text = sb.ToString();
+            _status.Text = "Status\r\n------\r\nFastboot: " + (devices.Count > 0 ? devices.Count + " device(s) found" : "No devices") + "\r\n\r\n" + _workspace.Root;
+            Speak(devices.Count > 0 ? "Fastboot devices found" : "No fastboot devices");
+        }
+        catch (Exception ex)
+        {
+            _status.Text = $"Status\r\n------\r\nFastboot error: {ex.Message}\r\n";
+            _logger.Error("Fastboot device list failed", ex);
+            Speak("Fastboot error");
+        }
+    }
+
     private async Task ScanAsync()
     {
         SetActionButtons(false); _status.Text = "Status\r\n------\r\nChecking ADB...";
@@ -254,7 +302,7 @@ public sealed class MainForm : Form
         catch (Exception ex) { _status.Text = $"Status\r\n------\r\nUSB enumeration failed: {ex.Message}"; _logger.Error("USB enumeration failed.", ex); Speak("USB enumeration failed"); }
     }
 
-    private void SetActionButtons(bool enabled) { _scanButton.Enabled = enabled; _environmentButton.Enabled = enabled; _deepScanButton.Enabled = enabled && _device is not null; _usbScanButton.Enabled = enabled; _researchButton.Enabled = enabled && _device is not null; _rp2040Button.Enabled = enabled; _firmwareButton.Enabled = enabled; }
+    private void SetActionButtons(bool enabled) { _scanButton.Enabled = enabled; _environmentButton.Enabled = enabled; _deepScanButton.Enabled = enabled && _device is not null; _usbScanButton.Enabled = enabled; _researchButton.Enabled = enabled && _device is not null; _rp2040Button.Enabled = enabled; _firmwareButton.Enabled = enabled; _fastbootButton.Enabled = enabled; }
     private void SetOperationButtons(bool enabled) { _rebootButton.Enabled = enabled; _bootloaderButton.Enabled = enabled; _recoveryButton.Enabled = enabled; }
     private static string FormatDiagnostic(DiagnosticItem item) { var evidence = string.IsNullOrWhiteSpace(item.Evidence) ? string.Empty : $"\r\n    Evidence: {item.Evidence}"; return $"[{item.Status.ToString().ToUpperInvariant()}] {item.Name}: {item.Value}{evidence}"; }
     private static string FormatCapability(AndroidCapability item) => $"[{item.Status.ToString().ToUpperInvariant()}] {item.Name}\r\n    Evidence: {item.Evidence}\r\n    Meaning: {item.Explanation}";
