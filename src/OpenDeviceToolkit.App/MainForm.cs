@@ -1,7 +1,9 @@
 using OpenDeviceToolkit.Android;
 using OpenDeviceToolkit.Core;
+using OpenDeviceToolkit.Core.Firmware;
 using OpenDeviceToolkit.Core.Research;
 using OpenDeviceToolkit.Core.Speech;
+using OpenDeviceToolkit.Hardware;
 using OpenDeviceToolkit.Hardware.Rp2040;
 using System.Runtime.InteropServices;
 
@@ -35,6 +37,7 @@ public sealed class MainForm : Form
     private readonly Button _voiceToggleButton = new();
     private readonly Button _researchButton = new();
     private readonly Button _rp2040Button = new();
+    private readonly Button _firmwareButton = new();
     private readonly CheckBox _eWasteModeCheckBox = new();
     private readonly Panel _voicePanel = new();
     private readonly TextBox _voiceInput = new();
@@ -73,7 +76,7 @@ public sealed class MainForm : Form
         _logger.Info($"Workspace: {_workspace.Root}");
         _logger.Info($"OS: {RuntimeInformation.OSDescription}");
         _logger.Info($".NET: {Environment.Version}");
-        Text = "Open Device Toolkit 0.1 Alpha";
+        Text = "Open Device Toolkit 0.2 Alpha";
         StartPosition = FormStartPosition.CenterScreen; MinimumSize = new Size(900, 600); Size = new Size(1200, 800); Font = new Font("Segoe UI", 10F);
         var title = new Label { Text = "Open Device Toolkit", Font = new Font("Segoe UI", 20F, FontStyle.Bold), AutoSize = true, Location = new Point(24, 18) };
         var subtitle = new Label { Text = "Device reconnaissance + controlled operations + natural voice", AutoSize = true, Location = new Point(27, 58) };
@@ -87,6 +90,7 @@ public sealed class MainForm : Form
         _researchButton.Text = "Research Device"; _researchButton.AutoSize = true; _researchButton.Location = new Point(150, 130); _researchButton.Click += async (_, _) => await StartResearchAsync();
         _rp2040Button.Text = "RP2040 Bridge"; _rp2040Button.AutoSize = true; _rp2040Button.Location = new Point(295, 130); _rp2040Button.Click += async (_, _) => await ShowRp2040DialogAsync();
         _eWasteModeCheckBox.Text = "E-Waste Mode"; _eWasteModeCheckBox.AutoSize = true; _eWasteModeCheckBox.Location = new Point(440, 132); _eWasteModeCheckBox.CheckedChanged += (_, _) => { _eWasteMode = _eWasteModeCheckBox.Checked; UpdateEwasteMode(); };
+        _firmwareButton.Text = "Validate Firmware"; _firmwareButton.AutoSize = true; _firmwareButton.Location = new Point(590, 130); _firmwareButton.Click += async (_, _) => await ValidateFirmwareAsync();
         _rebootButton.Text = "Reboot"; _rebootButton.AutoSize = true; _rebootButton.Location = new Point(24, 335); _rebootButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootSystem);
         _bootloaderButton.Text = "Reboot Bootloader"; _bootloaderButton.AutoSize = true; _bootloaderButton.Location = new Point(110, 335); _bootloaderButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootBootloader);
         _recoveryButton.Text = "Reboot Recovery"; _recoveryButton.AutoSize = true; _recoveryButton.Location = new Point(270, 335); _recoveryButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootRecovery);
@@ -105,7 +109,7 @@ public sealed class MainForm : Form
         _clarificationOption2.AutoSize = true; _clarificationOption2.Location = new Point(150, 40); _clarificationOption2.Click += (_, _) => HandleClarification(2);
         _clarificationOption3.AutoSize = true; _clarificationOption3.Location = new Point(280, 40); _clarificationOption3.Click += (_, _) => HandleClarification(3);
         _clarificationPanel.Controls.AddRange(new Control[] { _clarificationLabel, _clarificationOption1, _clarificationOption2, _clarificationOption3 });
-        Controls.AddRange(new Control[] { title, subtitle, _scanButton, reportButton, workspaceButton, _environmentButton, _deepScanButton, _usbScanButton, _voiceToggleButton, _researchButton, _rp2040Button, _eWasteModeCheckBox, _rebootButton, _bootloaderButton, _recoveryButton, _deviceSummary, _status, _output, _voicePanel, _clarificationPanel });
+        Controls.AddRange(new Control[] { title, subtitle, _scanButton, reportButton, workspaceButton, _environmentButton, _deepScanButton, _usbScanButton, _voiceToggleButton, _researchButton, _rp2040Button, _eWasteModeCheckBox, _firmwareButton, _rebootButton, _bootloaderButton, _recoveryButton, _deviceSummary, _status, _output, _voicePanel, _clarificationPanel });
         SetActionButtons(false); SetOperationButtons(false); Shown += async (_, _) => await ScanAsync();
     }
 
@@ -141,8 +145,69 @@ public sealed class MainForm : Form
 
     private async Task ShowRp2040DialogAsync()
     {
-        try { _status.Text = "Status\r\n------\r\nConnecting to RP2040...\r\n"; Speak("Connecting to RP2040 bridge"); var connected = await _rp2040Controller.ConnectAsync(); if (!connected) { _status.Text += "Failed to connect to RP2040\r\n"; Speak("RP2040 not found"); return; } _status.Text += "RP2040 connected!\r\n"; Speak("RP2040 connected successfully"); var modes = string.Join(", ", _rp2040Controller.AvailableModes); _output.Text = $"RP2040 Bridge\r\n================\r\nConnected: {_rp2040Controller.IsConnected}\r\nCurrent Mode: {_rp2040Controller.CurrentMode}\r\nAvailable Modes: {modes}\r\n\r\n"; foreach (var chip in PinoutDatabase.GetChipIdentifiers().Take(20)) _output.Text += $"  - {chip}\r\n"; Speak($"RP2040 ready. {_rp2040Controller.AvailableModes.Count} modes available."); }
-        catch (Exception ex) { _status.Text = $"Status\r\n------\r\nRP2040 error: {ex.Message}\r\n"; _logger.Error("RP2040 error", ex); Speak("RP2040 error occurred"); }
+        try
+        {
+            _status.Text = "Status\r\n------\r\nRunning guided probe workflow...\r\n";
+            Speak("Starting guided probe");
+            var workflow = new ProbeWorkflow(_rp2040Controller);
+            var result = await workflow.RunAsync(new ProbeTarget("Auto-detect"));
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Guided Probe Workflow");
+            sb.AppendLine("===================");
+            sb.AppendLine();
+            sb.AppendLine($"Target: {result.TargetDescription}");
+            sb.AppendLine($"Connected: {result.Connected}");
+            sb.AppendLine();
+            sb.AppendLine("--- Connection Guidance ---");
+            foreach (var g in result.ConnectionGuidance) sb.AppendLine(g);
+            sb.AppendLine();
+            sb.AppendLine("--- Observations ---");
+            foreach (var o in result.Observations) sb.AppendLine($"  {o.Name}: {o.Value} ({(o.Success ? "OK" : "FAIL")})");
+            sb.AppendLine();
+            sb.AppendLine("--- Inferred Capabilities ---");
+            foreach (var c in result.Capabilities) sb.AppendLine($"  {(c.Available ? "[YES]" : "[NO] ")} {c.Name}: {c.Evidence}");
+            sb.AppendLine();
+            sb.AppendLine("--- Notes ---");
+            foreach (var n in result.Notes) sb.AppendLine(n);
+            _output.Text = sb.ToString();
+            _status.Text += result.Connected ? "Probe workflow complete.\r\n" : "Probe failed to connect.\r\n";
+            Speak(result.Connected ? "Probe workflow complete" : "Probe failed to connect");
+        }
+        catch (Exception ex)
+        {
+            _status.Text = $"Status\r\n------\r\nProbe error: {ex.Message}\r\n";
+            _logger.Error("Probe workflow error", ex);
+            Speak("Probe error occurred");
+        }
+    }
+
+    private async Task ValidateFirmwareAsync()
+    {
+        try
+        {
+            using var dialog = new OpenFileDialog { Title = "Select firmware file", Filter = "Firmware (*.img;*.bin;*.zip)|*.img;*.bin;*.zip|All files (*.*)|*.*" };
+            if (dialog.ShowDialog(this) != DialogResult.OK) return;
+            _status.Text = "Status\r\n------\r\nAcquiring firmware artifact...\r\n";
+            var service = new FirmwareArtifactService();
+            var artifact = await service.AcquireAsync(dialog.FileName);
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Firmware Artifact");
+            sb.AppendLine("=================");
+            sb.AppendLine($"File: {artifact.FilePath}");
+            sb.AppendLine($"Size: {artifact.Size} bytes");
+            sb.AppendLine($"SHA-256: {artifact.Sha256}");
+            sb.AppendLine($"Status: {artifact.ValidationStatus}");
+            sb.AppendLine($"Message: {artifact.ValidationMessage}");
+            _output.Text = sb.ToString();
+            _status.Text = "Status\r\n------\r\nFirmware acquired.\r\nSHA-256: " + artifact.Sha256 + "\r\nSize: " + artifact.Size + " bytes\r\n\r\n" + _workspace.Root;
+            Speak("Firmware validated");
+        }
+        catch (Exception ex)
+        {
+            _status.Text = $"Status\r\n------\r\nFirmware validation failed: {ex.Message}\r\n";
+            _logger.Error("Firmware validation failed", ex);
+            Speak("Firmware validation failed");
+        }
     }
 
     private async Task ScanAsync()
@@ -189,7 +254,7 @@ public sealed class MainForm : Form
         catch (Exception ex) { _status.Text = $"Status\r\n------\r\nUSB enumeration failed: {ex.Message}"; _logger.Error("USB enumeration failed.", ex); Speak("USB enumeration failed"); }
     }
 
-    private void SetActionButtons(bool enabled) { _scanButton.Enabled = enabled; _environmentButton.Enabled = enabled; _deepScanButton.Enabled = enabled && _device is not null; _usbScanButton.Enabled = enabled; _researchButton.Enabled = enabled && _device is not null; _rp2040Button.Enabled = enabled; }
+    private void SetActionButtons(bool enabled) { _scanButton.Enabled = enabled; _environmentButton.Enabled = enabled; _deepScanButton.Enabled = enabled && _device is not null; _usbScanButton.Enabled = enabled; _researchButton.Enabled = enabled && _device is not null; _rp2040Button.Enabled = enabled; _firmwareButton.Enabled = enabled; }
     private void SetOperationButtons(bool enabled) { _rebootButton.Enabled = enabled; _bootloaderButton.Enabled = enabled; _recoveryButton.Enabled = enabled; }
     private static string FormatDiagnostic(DiagnosticItem item) { var evidence = string.IsNullOrWhiteSpace(item.Evidence) ? string.Empty : $"\r\n    Evidence: {item.Evidence}"; return $"[{item.Status.ToString().ToUpperInvariant()}] {item.Name}: {item.Value}{evidence}"; }
     private static string FormatCapability(AndroidCapability item) => $"[{item.Status.ToString().ToUpperInvariant()}] {item.Name}\r\n    Evidence: {item.Evidence}\r\n    Meaning: {item.Explanation}";

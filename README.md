@@ -2,13 +2,38 @@
 
 **The digital Swiss Army knife for electronics, firmware, recovery, and embedded-device diagnostics.**
 
-Open Device Toolkit (ODT) is a private-development Windows workbench intended to identify, inspect, document, diagnose, back up, and eventually interact with a wide range of electronic devices. The project starts with Android reconnaissance and is designed to grow through device providers and plugins.
+Open Device Toolkit (ODT) is a Windows workbench that identifies, inspects, documents, diagnoses, backs up, and interacts with a wide range of electronic devices from Android phones to RP2040-based microcontroller boards.
 
-> **Current status:** 0.1 Alpha. The first functional Windows application can discover ADB, inspect connected Android devices, display key device state, and create a text report. It is deliberately read-only at this stage.
+> **Current status:** 0.2 Alpha. ODT can discover ADB/Fastboot devices, inspect Android devices, validate firmware artifacts, run guided RP2040 probe workflows, and execute end-to-end recovery workflows all with read-only-first safety guards.
+
+## Implemented capabilities
+
+### Android device operations
+- **ADB/Fastboot discovery** Windows-aware tool detection from workspace and PATH
+- **Device identification** manufacturer, model, build, security patch, boot state, slot, verified boot status
+- **Deep read-only scan** boot, USB, partition, and filesystem diagnostics
+- **Reboot operations** system, bootloader, and recovery reboots through OperationGuard
+- **Capability planning** evidence-backed next-step recommendations with risk classification
+
+### Firmware handling
+- **Artifact acquisition** file size and SHA-256 checksum computation
+- **Validation** checksum, size, and model match verification before any write operation
+- **Validation status** Verified, HashMismatch, SizeMismatch, ModelMismatch, Missing
+
+### Hardware bridge (RP2040)
+- **Guided probe workflow** connection guidance, observation capture (voltage, logic activity), evidence-based capability inference
+- **Pinout database** known chip pinouts for STM32F103, RP2040, ESP32, ATmega328P, Snapdragon 855
+- **Multi-mode controller** GPIO, UART, SPI, I2C, SWD, JTAG, CMSIS-DAP, logic analyzer, OneWire, CAN
+
+### Safety infrastructure
+- **OperationGuard** centralized safety gate for all state-changing operations
+- **OperationRisk classification** ReadOnly, StateChange, PersistentWrite
+- **Confirmation model** read-only ops need an identified target; state-changing ops need explicit confirmation
+- **End-to-end recovery workflow** identify, detect, validate, backup, guarded operation, verify
 
 ## First target device
 
-The initial development/test target is an LG V50 ThinQ LM-V450VM running Android 12. The project documentation records known device observations in `HANDOFF.md` without depending on the user's private conversation history.
+The initial development/test target is an LG V50 ThinQ LM-V450VM running Android 12. The project documentation records known device observations in HANDOFF.md without depending on private conversation history.
 
 ## Principles
 
@@ -19,96 +44,35 @@ The initial development/test target is an LG V50 ThinQ LM-V450VM running Android
 - **Recoverability matters.** Future firmware operations must identify their target and prerequisites before writing.
 - **Portable knowledge.** Device support belongs in providers/plugins rather than being hard-coded into the UI.
 
-## Planned capabilities
-
-### Android and phones
-
-- ADB/Fastboot discovery
-- Device identification and property collection
-- Partition and A/B-slot inspection
-- Boot-chain analysis
-- Vendor-specific research tooling
-- Safe backup and snapshot workflows
-- Firmware identification
-- Recovery-mode analysis
-
-### PC tooling
-
-- Driver inventory
-- Tool/version detection
-- Download management with integrity checks
-- Workspace and report management
-
-### Embedded hardware
-
-Long-term research includes ESP32, STM32, RP2040 and other microcontrollers, serial-console tooling, and an RP2040-based multifunction hardware bridge for interfaces such as UART, SPI, I2C, SWD/CMSIS-DAP, GPIO, and potentially JTAG with appropriate hardware support.
-
-The goal is not to pretend that every unknown board can be magically identified. Devices with no readable identity or standard protocol may require user guidance or specialized hardware.
-
 ## Repository layout
 
-```text
 src/
-  OpenDeviceToolkit.App/       Windows UI
-  OpenDeviceToolkit.Core/      Shared services and abstractions
-  OpenDeviceToolkit.Android/   Android/ADB provider
+  OpenDeviceToolkit.App/       Windows UI (WinForms)
+  OpenDeviceToolkit.Core/      Shared services, research, firmware handling
+  OpenDeviceToolkit.Android/   Android/ADB/Fastboot provider, operation guard, recovery workflow
+  OpenDeviceToolkit.Hardware/  RP2040 hardware bridge, probe workflow, pinout database
 
-plugins/                       Future external providers
-scripts/                       Development/build helpers
-tests/                         Automated tests
+tests/                         Automated tests (xUnit)
 docs/                          Developer documentation
-.github/workflows/             CI
+.github/workflows/             CI (Windows)
 
 ROADMAP.md                    Feature roadmap
 ARCHITECTURE.md               Architecture and design rules
 HANDOFF.md                    Continuity guide for future developers/AI
 CHANGELOG.md                  Project history
-```
-
-## Local workspace
-
-The default workspace is:
-
-```text
-D:\OpenDeviceToolkit\
-├── Backups\
-├── Drivers\
-├── Downloads\
-├── Firmware\
-├── Logs\
-├── Reports\
-├── Tools\
-└── Workspace\
-```
-
-The application will eventually make this configurable. The local workspace is ignored by Git so device data and firmware do not accidentally enter the repository.
 
 ## Build
 
-The application targets **.NET 8 / Windows Forms**. On Windows with the .NET 8 SDK installed:
+The application targets .NET 8 / Windows Forms. On Windows with the .NET 8 SDK installed:
 
-```powershell
-dotnet restore src/OpenDeviceToolkit.App/OpenDeviceToolkit.App.csproj
 dotnet build src/OpenDeviceToolkit.App/OpenDeviceToolkit.App.csproj --configuration Release
-```
+dotnet test
 
-The repository also contains a Windows GitHub Actions build workflow under `.github/workflows/build.yml`.
-
-## Continuation / handoff
-
-If development is continued by another person or AI, read these files first:
-
-1. `README.md`
-2. `HANDOFF.md`
-3. `ROADMAP.md`
-4. `ARCHITECTURE.md`
-5. `CHANGELOG.md`
-
-Then inspect the actual source tree and recent commits. The repository is the authoritative project state. Do not rely on the original chat as the sole source of requirements.
+CI runs on Windows via GitHub Actions. Core, Android, and Hardware projects treat warnings as errors.
 
 ## Safety boundary
 
-ODT is intended for legitimate device repair, diagnostics, development, and research. Early versions perform read-only inspection. Future write/flash functionality must be implemented as explicit capabilities with target identification, prerequisite checks, warnings, confirmation, and verification rather than exposing unrestricted destructive actions through normal workflows.
+ODT is intended for legitimate device repair, diagnostics, development, and research. Write/flash functionality is implemented as explicit capabilities with target identification, prerequisite checks, warnings, confirmation, and verification.
 
 ## License
 
