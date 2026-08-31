@@ -40,6 +40,7 @@ public sealed class MainForm : Form
     private readonly Button _firmwareButton = new();
     private readonly Button _fastbootButton = new();
     private readonly Button _recoveryWorkflowButton = new();
+    private readonly Button _pinoutLookupButton = new();
     private readonly CheckBox _eWasteModeCheckBox = new();
     private readonly Panel _voicePanel = new();
     private readonly TextBox _voiceInput = new();
@@ -95,6 +96,7 @@ public sealed class MainForm : Form
         _firmwareButton.Text = "Validate Firmware"; _firmwareButton.AutoSize = true; _firmwareButton.Location = new Point(590, 130); _firmwareButton.Click += async (_, _) => await ValidateFirmwareAsync();
         _fastbootButton.Text = "Fastboot"; _fastbootButton.AutoSize = true; _fastbootButton.Location = new Point(740, 130); _fastbootButton.Click += async (_, _) => await ListFastbootDevicesAsync();
         _recoveryWorkflowButton.Text = "Recovery Workflow"; _recoveryWorkflowButton.AutoSize = true; _recoveryWorkflowButton.Location = new Point(840, 130); _recoveryWorkflowButton.Click += async (_, _) => await RunRecoveryWorkflowAsync();
+        _pinoutLookupButton.Text = "Pinout Lookup"; _pinoutLookupButton.AutoSize = true; _pinoutLookupButton.Location = new Point(840, 95); _pinoutLookupButton.Click += (_, _) => ShowPinoutLookupDialog();
         _rebootButton.Text = "Reboot"; _rebootButton.AutoSize = true; _rebootButton.Location = new Point(24, 335); _rebootButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootSystem);
         _bootloaderButton.Text = "Reboot Bootloader"; _bootloaderButton.AutoSize = true; _bootloaderButton.Location = new Point(110, 335); _bootloaderButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootBootloader);
         _recoveryButton.Text = "Reboot Recovery"; _recoveryButton.AutoSize = true; _recoveryButton.Location = new Point(270, 335); _recoveryButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootRecovery);
@@ -113,7 +115,7 @@ public sealed class MainForm : Form
         _clarificationOption2.AutoSize = true; _clarificationOption2.Location = new Point(150, 40); _clarificationOption2.Click += (_, _) => HandleClarification(2);
         _clarificationOption3.AutoSize = true; _clarificationOption3.Location = new Point(280, 40); _clarificationOption3.Click += (_, _) => HandleClarification(3);
         _clarificationPanel.Controls.AddRange(new Control[] { _clarificationLabel, _clarificationOption1, _clarificationOption2, _clarificationOption3 });
-        Controls.AddRange(new Control[] { title, subtitle, _scanButton, reportButton, workspaceButton, _environmentButton, _deepScanButton, _usbScanButton, _voiceToggleButton, _researchButton, _rp2040Button, _eWasteModeCheckBox, _firmwareButton, _fastbootButton, _recoveryWorkflowButton, _rebootButton, _bootloaderButton, _recoveryButton, _deviceSummary, _status, _output, _voicePanel, _clarificationPanel });
+        Controls.AddRange(new Control[] { title, subtitle, _scanButton, reportButton, workspaceButton, _environmentButton, _deepScanButton, _usbScanButton, _voiceToggleButton, _researchButton, _rp2040Button, _eWasteModeCheckBox, _firmwareButton, _fastbootButton, _recoveryWorkflowButton, _pinoutLookupButton, _rebootButton, _bootloaderButton, _recoveryButton, _deviceSummary, _status, _output, _voicePanel, _clarificationPanel });
         SetActionButtons(false); SetOperationButtons(false); Shown += async (_, _) => await ScanAsync();
     }
 
@@ -303,6 +305,66 @@ public sealed class MainForm : Form
     }
 
 
+    private void ShowPinoutLookupDialog()
+    {
+        using var dialog = new Form
+        {
+            Text = "Pinout Lookup",
+            Width = 400,
+            Height = 180,
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false,
+            MinimizeBox = false
+        };
+        var label = new Label { Text = "Select a chip:", Location = new Point(10, 10), AutoSize = true };
+        var combo = new ComboBox { Location = new Point(10, 35), Width = 370, DropDownStyle = ComboBoxStyle.DropDownList };
+        foreach (var id in PinoutDatabase.GetChipIdentifiers())
+            combo.Items.Add(id);
+        if (combo.Items.Count > 0) combo.SelectedIndex = 0;
+        var okButton = new Button { Text = "Show Pinout", Location = new Point(190, 110), Width = 100, DialogResult = DialogResult.OK };
+        var cancelButton = new Button { Text = "Cancel", Location = new Point(300, 110), Width = 80, DialogResult = DialogResult.Cancel };
+        dialog.Controls.AddRange(new Control[] { label, combo, okButton, cancelButton });
+        dialog.AcceptButton = okButton;
+        dialog.CancelButton = cancelButton;
+        if (dialog.ShowDialog(this) != DialogResult.OK || combo.SelectedItem is null) return;
+        var chipId = (string)combo.SelectedItem;
+        var pinout = PinoutDatabase.GetPinout(chipId);
+        if (pinout is null)
+        {
+            _status.Text = "Status\r\n------\r\nPinout not found for: " + chipId;
+            Speak("Pinout not found");
+            return;
+        }
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Chip Pinout");
+        sb.AppendLine("==========");
+        sb.AppendLine($"Name: {pinout.Name}");
+        sb.AppendLine($"Manufacturer: {pinout.Manufacturer}");
+        sb.AppendLine($"Description: {pinout.Description}");
+        sb.AppendLine();
+        sb.AppendLine("Programming Interfaces:");
+        foreach (var iface in pinout.ProgrammingInterfaces)
+        {
+            sb.AppendLine($"  Type: {iface.Type}");
+            if (iface.ClockPin.HasValue) sb.AppendLine($"    Clock Pin: {iface.ClockPin}");
+            if (iface.DataPin.HasValue) sb.AppendLine($"    Data Pin: {iface.DataPin}");
+            sb.AppendLine($"    Voltage: {iface.Voltage}V");
+            sb.AppendLine($"    Notes: {iface.Notes}");
+            sb.AppendLine();
+        }
+        sb.AppendLine("Wiring Instructions:");
+        foreach (var iface in pinout.ProgrammingInterfaces)
+        {
+            sb.AppendLine(PinoutDatabase.GetWiringInstructions(chipId, iface.Type));
+            sb.AppendLine();
+        }
+        _output.Text = sb.ToString();
+        _status.Text = "Status\r\n------\r\nPinout: " + pinout.Name + "\r\n\r\n" + _workspace.Root;
+        Speak($"Pinout for {pinout.Name}");
+    }
+
+
     private async Task ScanAsync()
     {
         SetActionButtons(false); _status.Text = "Status\r\n------\r\nChecking ADB...";
@@ -347,7 +409,7 @@ public sealed class MainForm : Form
         catch (Exception ex) { _status.Text = $"Status\r\n------\r\nUSB enumeration failed: {ex.Message}"; _logger.Error("USB enumeration failed.", ex); Speak("USB enumeration failed"); }
     }
 
-    private void SetActionButtons(bool enabled) { _scanButton.Enabled = enabled; _environmentButton.Enabled = enabled; _deepScanButton.Enabled = enabled && _device is not null; _usbScanButton.Enabled = enabled; _researchButton.Enabled = enabled && _device is not null; _rp2040Button.Enabled = enabled; _firmwareButton.Enabled = enabled; _fastbootButton.Enabled = enabled; _recoveryWorkflowButton.Enabled = enabled; }
+    private void SetActionButtons(bool enabled) { _scanButton.Enabled = enabled; _environmentButton.Enabled = enabled; _deepScanButton.Enabled = enabled && _device is not null; _usbScanButton.Enabled = enabled; _researchButton.Enabled = enabled && _device is not null; _rp2040Button.Enabled = enabled; _firmwareButton.Enabled = enabled; _fastbootButton.Enabled = enabled; _recoveryWorkflowButton.Enabled = enabled; _pinoutLookupButton.Enabled = enabled; }
     private void SetOperationButtons(bool enabled) { _rebootButton.Enabled = enabled; _bootloaderButton.Enabled = enabled; _recoveryButton.Enabled = enabled; }
     private static string FormatDiagnostic(DiagnosticItem item) { var evidence = string.IsNullOrWhiteSpace(item.Evidence) ? string.Empty : $"\r\n    Evidence: {item.Evidence}"; return $"[{item.Status.ToString().ToUpperInvariant()}] {item.Name}: {item.Value}{evidence}"; }
     private static string FormatCapability(AndroidCapability item) => $"[{item.Status.ToString().ToUpperInvariant()}] {item.Name}\r\n    Evidence: {item.Evidence}\r\n    Meaning: {item.Explanation}";
