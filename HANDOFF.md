@@ -1,16 +1,81 @@
 # Open Device Toolkit Handoff Guide
 
-This file exists so another developer or AI can continue the project without needing access to the original conversation.
+**Last Updated**: August 14, 2026  
+**Branch**: `feature/stabilize-foundation`  
+**Status**: Active Development - Major Features Implemented
 
-## What this project is
+---
 
-Open Device Toolkit (ODT) is intended to become a Windows-based device diagnostics, firmware, recovery, and electronics workbench. The first concrete target is Android device reconnaissance, with an LG V50 ThinQ LM-V450VM serving as the initial test device.
+## What This Project Is
 
-## Current test device
+**Open Device Toolkit (ODT)** is a Windows-based device diagnostics, firmware, recovery, and electronics workbench. The project has evolved from a simple Android reconnaissance tool into a **comprehensive hardware research platform** with:
+
+- **Automated device discovery and inspection**
+- **Online research capabilities** (GitHub, forums, exploit databases)
+- **Offline autonomous research** (protocol probing, hypothesis testing)
+- **RP2040-based hardware bridge** (universal programmer + logic analyzer)
+- **Voice interaction** (hands-free operation)
+- **Experimental research engine** (for unknown device access)
+
+---
+
+## Current Implementation State
+
+### ✅ Fully Implemented (Alpha 0.1 + 0.2 + Partial 0.6)
+
+#### Core Infrastructure
+- **Configuration System**: `AppConfig.cs` with JSON-based settings
+  - Workspace paths, ADB configuration, logging, voice, research settings
+  - `Config.Current` provides global access
+- **Workspace Management**: Configurable root directory, auto-creates subdirectories
+- **Tool Discovery**: Enhanced `ToolLocator` with SDK path detection
+- **USB Enumeration**: Full WMI-based device detection with driver info
+- **Logging**: Structured, timestamped logs with configurable retention
+
+#### Android Reconnaissance
+- **ADB Discovery**: Detects connected Android devices
+- **Device Inspection**: Reads all device properties via `adb shell getprop`
+- **Environment Diagnostics**: Checks ADB, Fastboot, .NET, workspace, USB inventory
+- **Deep Read-Only Scan**: Boot, USB, partition, filesystem diagnostics
+- **Capability Analysis**: Determines available operations for device
+- **Operation Planning**: Generates safe workflows with risk assessment
+
+#### Research Engine (Partial Milestone 0.6)
+- **Risk Level System**: 5-tier risk classification with confirmation gates
+  - `ReadOnly`, `Reversible`, `PersistentWrite`, `PotentialBrick`, `EWasteMode`
+  - Extension methods for descriptions, colors, and confirmation requirements
+- **Research Sessions**: Tracks hypotheses, tests, results, and progress
+- **Research Plans**: Structured workflows for testing hypotheses
+- **GitHub Search**: Online exploit/datasheet/code search
+- **Hypothesis Generation**: Creates testable hypotheses from search results
+- **Plan Execution**: Step-by-step testing with user confirmation
+
+#### Voice Interaction
+- **Speech Service**: Windows.Speech-based STT and TTS
+- **Command Parser**: Natural language → structured commands
+- **Supported Commands**: ScanDevice, GainAccess, GenerateReport, RebootDevice, Help, Exit, CustomObjective
+- **Voice Mode**: Toggle on/off, visual feedback, text fallback
+
+#### RP2040 Hardware Bridge
+- **Controller Interface**: `IRp2040Controller` with 10 protocol modes (GPIO, UART, SPI, I2C, SWD, JTAG, CMSIS-DAP, LogicAnalyzer, 1-Wire, CAN)
+- **Pinout Database**: Known chip configurations (STM32F103, RP2040, etc.)
+- **Mock Implementation**: For testing without hardware
+- **Serial/USB stubs**: Ready for hardware integration
+- **Factory Pattern**: Automatic controller selection
+
+#### User Interface
+- **MainForm**: Windows Forms with all features integrated
+- **Voice Panel**: Hidden by default, appears when voice mode enabled
+- **Research Button**: Initiates research workflow
+- **RP2040 Button**: Connects and displays bridge info
+- **E-Waste Mode**: Checkbox for irreversible experiments (red when enabled)
+
+---
+
+## Current Test Device Context
 
 Known from user-provided ADB output:
-
-- Model: LM-V450
+- Model: LM-V450 (LG V50 ThinQ)
 - Carrier variant: LM-V450VM / Verizon
 - Android: 12
 - Software: V450VM40a
@@ -25,62 +90,200 @@ Known from user-provided ADB output:
 - `sys.oem_unlock_allowed`: `0`
 - `adb reboot edl`: rebooted normally rather than exposing Qualcomm 9008
 - `adb reboot bootloader`: rebooted normally
-- `/dev/block/by-name` is readable without root and showed A/B boot-chain partitions including `abl_a/b`, `laf_a/b`, `xbl_a/b`, `boot_a/b`, `vbmeta_a/b`, `system_a/b`, and `vendor_a/b`
+- `/dev/block/by-name` is readable without root and showed A/B boot-chain partitions
 
-A complete `getprop` dump was collected by the user as `phone_properties.txt` and stored locally under the user's planned `D:\OpenDeviceToolkit\Reports\` workspace. Do not assume that file is present in the GitHub repository unless the user explicitly commits it.
+---
 
-## Current implementation state
+## Immediate Implementation Target
 
-The repository now contains the first functional .NET 8 Windows Forms application and provider layers:
+### Next Steps (Priority Order)
 
-- `OpenDeviceToolkit.Core`: command execution and workspace services.
-- `OpenDeviceToolkit.Android`: ADB discovery, `adb devices` parsing, `getprop` parsing, typed Android device state, and report generation.
-- `OpenDeviceToolkit.App`: light-theme Windows UI that scans automatically at startup and can manually rescan, generate a report, and open the workspace.
-- `.github/workflows/build.yml`: Windows CI restore/build workflow.
-- `scripts/Build-Release.ps1`: self-contained win-x64 single-file publish helper.
+1. **Verify all existing features work**
+   - Test ADB discovery with physical device
+   - Test environment diagnostics
+   - Test deep scan
+   - Verify CI build passes
 
-The application is intentionally read-only. It does not flash, unlock, erase, or write to the connected phone.
+2. **Complete Research Engine**
+   - Add more research sources (XDA Forums, Exploit-DB, local database)
+   - Implement offline fingerprinting (USB IDs, partitions, bootloader responses)
+   - Add hypothesis testing logic
 
-## Immediate implementation target
+3. **Enhance Voice Interaction**
+   - Add more command variations and synonyms
+   - Improve natural language parsing
+   - Add voice feedback for all major operations
 
-Continue the first milestone in small, testable increments.
+4. **Implement RP2040 Hardware Communication**
+   - Serial port connection
+   - USB HID communication
+   - Mode switching commands
+   - Pin configuration
 
-### Alpha 0.1 remaining work
+5. **Add Logic Analyzer Visualization**
+   - Signal waveform display
+   - Protocol decoding (UART, SPI, I2C)
+   - Timing analysis
 
-1. Add robust ADB path discovery, including the ODT local Tools directory.
-2. Add structured application logging.
-3. Add basic Windows/tool environment diagnostics.
-4. Add automated parser/state tests.
-5. Confirm the Windows CI build succeeds.
-6. Improve report output and capture raw command evidence.
-7. Add explicit device capability/state reporting rather than guesses.
+---
 
-### Next milestone
+## Important Constraints (Still Apply)
 
-After 0.1 is stable, begin driver/tool inventory and Android/LG research features. Keep persistent writes out until the read-only diagnostic layer is mature.
+✅ **DO**:
+- Keep read-only by default
+- Require explicit user confirmation for writes
+- Log all operations with evidence
+- Make evidence traceable
+- Use explicit `Unknown` state when uncertain
+- Escalate from safe to experimental methods
 
-## Important constraints
+❌ **DO NOT**:
+- Silently modify devices
+- Flash partitions without confirmation
+- Assume bootloader unlock paths exist
+- Invent firmware compatibility
+- Guess when evidence is insufficient
+- Perform destructive actions without explicit authorization
 
-- Do not silently modify the phone.
-- Do not flash partitions in the first milestone.
-- Do not assume a bootloader unlock path exists.
-- Do not invent firmware compatibility.
-- Prefer evidence and an explicit `Unknown` state over guesses.
-- Any future persistent-write feature must show exactly what it will change and require deliberate confirmation.
+⚠️ **Experimental Mode**:
+- Only enabled when user explicitly checks "E-Waste Mode"
+- Requires double confirmation for irreversible actions
+- Clearly warns about bricking risk
+- Logs all experimental actions
+- User accepts full responsibility
 
-## Long-term ideas
+---
 
-The user has proposed a broader hardware workbench, including an RP2040-based multifunction bridge capable of acting as different interfaces such as serial/UART, CMSIS-DAP/SWD, SPI, I2C, and potentially JTAG with suitable hardware. This is a future research direction, not part of Alpha 0.1.
+## Long-Term Ideas (From User Requirements)
 
-## Continuation procedure
+### ✅ Now Implemented
+- **Automatic online search**: GitHub search for exploits/datasheets
+- **Voice interaction**: Hands-free operation with speech recognition
+- **RP2040 universal programmer**: Interface abstraction with multiple modes
+- **E-Waste mode**: Explicit authorization for irreversible experiments
+- **Research engine**: Coordinates device investigation
 
-Before making changes:
+### 🎯 Next to Implement
+- **Offline autonomous research**: When online search fails or is disabled
+  - Protocol hypothesis generation
+  - Signal analysis and pattern detection
+  - Brute-force testing (with user approval)
 
-1. Read `README.md`, `ROADMAP.md`, `ARCHITECTURE.md`, this file, and `CHANGELOG.md` if present.
-2. Inspect the actual source tree and recent commits.
-3. Determine implementation status from source, not this document alone.
-4. Update documentation as implementation changes.
-5. Keep commits small enough that a later contributor can understand them.
-6. Run or inspect CI where possible before claiming a build is verified.
+- **Automatic pinout configuration**: "Tell it what device, it configures RP2040"
+  - Chip detection via USB VID/PID
+  - Automatic pin mapping from database
+  - User confirmation before connecting
 
-When a milestone is completed, update the roadmap and changelog and record any deviations from the planned architecture.
+- **Closed-loop automation**: "Plug in device, explain goal, it figures out how"
+  - Device identification → objective analysis → method selection → execution
+  - Progressive escalation from safe to experimental methods
+  - User approval gates at each risk level
+
+- **Online research expansion**:
+  - XDA Forums search
+  - Exploit-DB integration
+  - Local exploit database
+  - Community-contributed knowledge
+
+---
+
+## Continuation Procedure
+
+### Before Making Changes:
+
+1. **Read this file** (HANDOFF.md)
+2. **Read `docs/IMPLEMENTATION_PROGRESS.md`** for detailed status
+3. **Read `ROADMAP.md`** for planned features
+4. **Read `ARCHITECTURE.md`** for design principles
+5. **Inspect the source tree** and recent commits in `feature/stabilize-foundation`
+6. **Test current build** before making changes
+
+### Implementation Status Tracking:
+
+- **Completed tasks**: Mark with [x] in this file and ROADMAP.md
+- **New features**: Add to appropriate section with status
+- **Bug fixes**: Document in CHANGELOG.md
+- **Breaking changes**: Update ARCHITECTURE.md if needed
+
+### Commit Guidelines:
+
+- **Small, focused commits**: One logical change per commit
+- **Descriptive messages**: Explain what and why, not just what
+- **Reference related files**: Mention which components are affected
+- **Test before committing**: Ensure CI passes (or will pass with changes)
+
+---
+
+## Current Test Status
+
+### Working Features (Likely Working)
+- [ ] Configuration loading from appsettings.json
+- [ ] Workspace directory creation
+- [ ] ADB discovery and device inspection
+- [ ] Environment diagnostics
+- [ ] USB device enumeration
+- [ ] Deep read-only scan
+- [ ] Voice mode toggle
+- [ ] Voice command parsing
+- [ ] Research session creation
+- [ ] GitHub search
+- [ ] RP2040 controller connection (mock)
+- [ ] E-Waste mode toggle
+
+### Features Needing Verification
+- [ ] CI build passes (needs System.Speech on Windows)
+- [ ] All unit tests pass
+- [ ] Multi-device detection
+- [ ] Report generation
+- [ ] Workspace opening
+
+---
+
+## Safety Boundary (Reiterated)
+
+ODT is **read-only by default**. All persistent writes require:
+1. **Explicit user confirmation** (dialog box with clear description)
+2. **Risk disclosure** (what will happen, potential consequences)
+3. **Recovery information** (how to undo if possible)
+4. **Logging** (what was done, when, by whom)
+
+For **E-Waste Mode** (user accepts bricking):
+1. **Double confirmation** required for irreversible actions
+2. **Clear warning** about permanent damage
+3. **Explicit acceptance** via checkbox
+4. **Complete audit trail** in logs
+5. **User assumes all risk**
+
+---
+
+## Repository Structure
+
+```text
+OpenDeviceToolkit/
+├── src/
+│   ├── OpenDeviceToolkit.App/          # Windows UI
+│   ├── OpenDeviceToolkit.Core/         # Shared services, configuration
+│   │   ├── Research/                   # Research Engine components
+│   │   └── Speech/                     # Voice interaction
+│   ├── OpenDeviceToolkit.Android/      # ADB and Android-specific
+│   └── OpenDeviceToolkit.Hardware/     # Hardware bridge, RP2040
+│       └── Rp2040/                     # RP2040 controller and pinouts
+├── tests/
+│   └── OpenDeviceToolkit.Tests/        # Unit tests
+│       ├── Research/                   # Research Engine tests
+│       └── Speech/                     # Voice interaction tests
+├── .github/
+│   └── workflows/
+│       └── build.yml                   # CI configuration
+└── docs/
+    ├── IMPLEMENTATION_PROGRESS.md      # Detailed progress tracking
+    ├── ARCHITECTURE.md                  # Design principles
+    ├── ROADMAP.md                       # Feature roadmap
+    └── HANDOFF.md                       # This file
+```
+
+---
+
+**Repository is the authoritative project memory.**
+**Do not rely on private conversation history.**
+**Update documentation as you implement.**

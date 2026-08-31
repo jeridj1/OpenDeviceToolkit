@@ -1,20 +1,28 @@
 namespace OpenDeviceToolkit.Hardware;
 
-public enum ProbeModeProfile { PassiveSniffer, Uart, Spi, I2c, Jtag, Swd }
 public sealed record Rp2040PinAssignment(string Signal, int Gpio);
-public sealed record ElectricalState(bool Safe, double? TargetVoltage, string Reason);
-public sealed record ProbeExecutionPlan(ElectricalState ElectricalState, IReadOnlyList<Rp2040PinAssignment> Pins, ProbeModeProfile Mode);
+public sealed record ProbeElectricalState(double? TargetVoltage, double? MaximumSafeVoltage, bool VoltageKnown, bool DriveAllowed, string Reason);
+public sealed record ProbeExecutionPlan(ProbeModeProfile Mode, IReadOnlyList<Rp2040PinAssignment> Pins, ProbeElectricalState ElectricalState, IReadOnlyList<string> Actions);
 
+/// <summary>Converts a selected probe mode into a staged plan. Unknown electrical conditions stay non-driving.</summary>
 public sealed class ProbeExecutionPlanner
 {
-    public ProbeExecutionPlan Prepare(ProbeModeProfile mode, IEnumerable<Rp2040PinAssignment> pins, double? targetVoltage)
+    public ProbeExecutionPlan Prepare(ProbeModeProfile profile, IEnumerable<Rp2040PinAssignment> pins, double? targetVoltage)
     {
-        var assignments = pins.ToArray();
-        var unique = assignments.Select(x => x.Gpio).Distinct().Count() == assignments.Length;
-        var valid = assignments.All(x => x.Gpio is >= 0 and <= 29);
-        var safeVoltage = targetVoltage is null || targetVoltage <= 3.3;
-        var safe = unique && valid && safeVoltage;
-        var reason = safe ? "Pin map passes basic RP2040 electrical checks; target remains passive until explicitly configured." : "Probe configuration rejected: check duplicate/invalid GPIO assignments and target voltage before connecting.";
-        return new(new ElectricalState(safe, targetVoltage, reason), assignments, mode);
+        var voltageKnown = targetVoltage is > 0 and <= 5.5;
+        var safeForRp2040 = targetVoltage is >= 1.8 and <= 3.6;
+        var driveAllowed = profile.CanDriveTarget && safeForRp2040;
+        var state = new ProbeElectricalState(targetVoltage, 3.6, voltageKnown, driveAllowed,
+            !voltageKnown ? "Target voltage is unknown; all target-facing GPIO remains input-only." :
+            !safeForRp2040 ? "Target voltage is outside the RP2040 GPIO domain; use appropriate level shifting." :
+            "Target voltage is within the expected RP2040 GPIO domain.");
+        var actions = new List<string>
+        {
+            "Set every target-facing GPIO to high impedance.",
+            "Measure/confirm target voltage before enabling outputs.",
+            driveAllowed ? "Configure only the requested output pins." : "Keep all target-facing GPIO in input/high-impedance mode.",
+            "Begin with the least invasive protocol transaction available."
+        };
+        return new(profile, pins.ToArray(), state, actions);
     }
 }

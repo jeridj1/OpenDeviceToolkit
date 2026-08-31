@@ -1,20 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <WarningsAsErrors>true</WarningsAsErrors>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <Company>OpenDeviceToolkit</Company>
-    <Copyright>Copyright © 2026</Copyright>
-    <Version>1.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OpenDeviceToolkit.Core\OpenDeviceToolkit.Core.csproj" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
-    <PackageReference Include="System.IO.Ports" Version="6.0.0" />
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- The repository contains two generations of the hardware API. The split RP2040
+       implementation and newer probe/UART APIs are the coherent set; exclude the
+       older monolithic/duplicate definitions from compilation. -->
+  <ItemGroup>
+    <Compile Remove="Rp2040BridgeProtocol.cs" />
+    <Compile Remove="ProbeSafety.cs" />
+    <Compile Remove="ProbeAuthorization.cs" />
+    <Compile Remove="UartAnalyzer.cs" />
+    <Compile Remove="Rp2040/Rp2040Controller.cs" />
   </ItemGroup>
 
 </Project>
