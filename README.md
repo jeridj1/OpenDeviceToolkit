@@ -4,7 +4,7 @@
 
 Open Device Toolkit (ODT) is a Windows workbench that identifies, inspects, documents, diagnoses, backs up, and interacts with a wide range of electronic devices from Android phones to RP2040-based microcontroller boards.
 
-> **Current status:** 0.2 Alpha. ODT can discover ADB/Fastboot devices, inspect Android devices, validate firmware artifacts, run guided RP2040 probe workflows, and execute end-to-end recovery workflows all with read-only-first safety guards.
+> **Current status:** 0.2 Alpha. ODT can discover ADB/Fastboot devices, inspect Android devices, validate firmware artifacts, run guided RP2040 probe workflows, execute end-to-end recovery workflows with UI integration, list fastboot devices, and look up chip pinouts — all with read-only-first safety guards.
 
 ## Implemented capabilities
 
@@ -13,6 +13,7 @@ Open Device Toolkit (ODT) is a Windows workbench that identifies, inspects, docu
 - **Device identification** manufacturer, model, build, security patch, boot state, slot, verified boot status
 - **Deep read-only scan** boot, USB, partition, and filesystem diagnostics
 - **Reboot operations** system, bootloader, and recovery reboots through OperationGuard
+- **Fastboot device discovery** list devices in fastboot mode with serial and state
 - **Capability planning** evidence-backed next-step recommendations with risk classification
 
 ### Firmware handling
@@ -22,14 +23,14 @@ Open Device Toolkit (ODT) is a Windows workbench that identifies, inspects, docu
 
 ### Hardware bridge (RP2040)
 - **Guided probe workflow** connection guidance, observation capture (voltage, logic activity), evidence-based capability inference
-- **Pinout database** known chip pinouts for STM32F103, RP2040, ESP32, ATmega328P, Snapdragon 855
+- **Pinout database** known chip pinouts for STM32F103, RP2040, ESP32, ATmega328P, Snapdragon 855, nRF52840, SAMD21, STM32F407, ESP8266, CH32V003
 - **Multi-mode controller** GPIO, UART, SPI, I2C, SWD, JTAG, CMSIS-DAP, logic analyzer, OneWire, CAN
 
 ### Safety infrastructure
 - **OperationGuard** centralized safety gate for all state-changing operations
 - **OperationRisk classification** ReadOnly, StateChange, PersistentWrite
 - **Confirmation model** read-only ops need an identified target; state-changing ops need explicit confirmation
-- **End-to-end recovery workflow** identify, detect, validate, backup, guarded operation, verify
+- **End-to-end recovery workflow** identify, detect, validate, backup, guarded operation, verify — with UI integration showing all 6 phases
 
 ## First target device
 
@@ -68,7 +69,7 @@ The application targets .NET 8 / Windows Forms. On Windows with the .NET 8 SDK i
 dotnet build src/OpenDeviceToolkit.App/OpenDeviceToolkit.App.csproj --configuration Release
 dotnet test
 
-CI runs on Windows via GitHub Actions. Core, Android, and Hardware projects treat warnings as errors.
+CI runs on Windows via GitHub Actions. Core, Android, and Hardware projects treat warnings as errors. The test suite covers ADB parsing, tool discovery, firmware validation, operation guard, probe workflow, recovery workflow, and pinout database.
 
 ## Safety boundary
 
