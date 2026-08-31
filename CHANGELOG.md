@@ -36,6 +36,10 @@ All notable changes to Open Device Toolkit are documented here.
 #### UI integration
 - RP2040 Bridge button now runs the guided ProbeWorkflow with connection guidance, observations, and capability inference.
 - New Validate Firmware button for SHA-256 checksum and artifact validation.
+- New Fastboot button for listing devices in fastboot mode via FastbootManager.
+- New Recovery Workflow button running the 6-phase end-to-end recovery workflow with phase-by-phase status display.
+- 5 new chip pinouts added to PinoutDatabase: nRF52840, SAMD21, STM32F407, ESP8266, CH32V003.
+- 10 new PinoutDatabase unit tests covering all new pinouts, USB VID/PID lookup, and case-insensitive search.
 
 ### Previous releases
 
