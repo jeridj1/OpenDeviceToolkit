@@ -39,6 +39,7 @@ public sealed class MainForm : Form
     private readonly Button _rp2040Button = new();
     private readonly Button _firmwareButton = new();
     private readonly Button _fastbootButton = new();
+    private readonly Button _recoveryWorkflowButton = new();
     private readonly CheckBox _eWasteModeCheckBox = new();
     private readonly Panel _voicePanel = new();
     private readonly TextBox _voiceInput = new();
@@ -93,6 +94,7 @@ public sealed class MainForm : Form
         _eWasteModeCheckBox.Text = "E-Waste Mode"; _eWasteModeCheckBox.AutoSize = true; _eWasteModeCheckBox.Location = new Point(440, 132); _eWasteModeCheckBox.CheckedChanged += (_, _) => { _eWasteMode = _eWasteModeCheckBox.Checked; UpdateEwasteMode(); };
         _firmwareButton.Text = "Validate Firmware"; _firmwareButton.AutoSize = true; _firmwareButton.Location = new Point(590, 130); _firmwareButton.Click += async (_, _) => await ValidateFirmwareAsync();
         _fastbootButton.Text = "Fastboot"; _fastbootButton.AutoSize = true; _fastbootButton.Location = new Point(740, 130); _fastbootButton.Click += async (_, _) => await ListFastbootDevicesAsync();
+        _recoveryWorkflowButton.Text = "Recovery Workflow"; _recoveryWorkflowButton.AutoSize = true; _recoveryWorkflowButton.Location = new Point(840, 130); _recoveryWorkflowButton.Click += async (_, _) => await RunRecoveryWorkflowAsync();
         _rebootButton.Text = "Reboot"; _rebootButton.AutoSize = true; _rebootButton.Location = new Point(24, 335); _rebootButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootSystem);
         _bootloaderButton.Text = "Reboot Bootloader"; _bootloaderButton.AutoSize = true; _bootloaderButton.Location = new Point(110, 335); _bootloaderButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootBootloader);
         _recoveryButton.Text = "Reboot Recovery"; _recoveryButton.AutoSize = true; _recoveryButton.Location = new Point(270, 335); _recoveryButton.Click += async (_, _) => await RunOperationAsync(AndroidOperationKind.RebootRecovery);
@@ -111,7 +113,7 @@ public sealed class MainForm : Form
         _clarificationOption2.AutoSize = true; _clarificationOption2.Location = new Point(150, 40); _clarificationOption2.Click += (_, _) => HandleClarification(2);
         _clarificationOption3.AutoSize = true; _clarificationOption3.Location = new Point(280, 40); _clarificationOption3.Click += (_, _) => HandleClarification(3);
         _clarificationPanel.Controls.AddRange(new Control[] { _clarificationLabel, _clarificationOption1, _clarificationOption2, _clarificationOption3 });
-        Controls.AddRange(new Control[] { title, subtitle, _scanButton, reportButton, workspaceButton, _environmentButton, _deepScanButton, _usbScanButton, _voiceToggleButton, _researchButton, _rp2040Button, _eWasteModeCheckBox, _firmwareButton, _fastbootButton, _rebootButton, _bootloaderButton, _recoveryButton, _deviceSummary, _status, _output, _voicePanel, _clarificationPanel });
+        Controls.AddRange(new Control[] { title, subtitle, _scanButton, reportButton, workspaceButton, _environmentButton, _deepScanButton, _usbScanButton, _voiceToggleButton, _researchButton, _rp2040Button, _eWasteModeCheckBox, _firmwareButton, _fastbootButton, _recoveryWorkflowButton, _rebootButton, _bootloaderButton, _recoveryButton, _deviceSummary, _status, _output, _voicePanel, _clarificationPanel });
         SetActionButtons(false); SetOperationButtons(false); Shown += async (_, _) => await ScanAsync();
     }
 
@@ -258,6 +260,49 @@ public sealed class MainForm : Form
         }
     }
 
+    private async Task RunRecoveryWorkflowAsync()
+    {
+        try
+        {
+            using var dialog = new OpenFileDialog { Title = "Select firmware file for recovery", Filter = "Firmware (*.img;*.bin;*.zip)|*.img;*.bin;*.zip|All files (*.*)|*.*" };
+            if (dialog.ShowDialog(this) != DialogResult.OK) return;
+            var serial = _device?.Serial ?? "unknown";
+            var model = _device?.Model ?? "Unknown";
+            var iface = _device is not null ? "adb" : "fastboot";
+            var answer = MessageBox.Show(this, $"Recovery workflow will run for:\r\n  Device: {model} ({serial})\r\n  Interface: {iface}\r\n  Firmware: {dialog.FileName}\r\n\r\nThe workflow validates firmware, records a backup, and runs a guarded operation.\r\n\r\nContinue?", "Confirm Recovery Workflow", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
+            if (answer != DialogResult.Yes) return;
+            _status.Text = "Status\r\n------\r\nRunning recovery workflow...\r\n";
+            Speak("Starting recovery workflow");
+            var firmwareService = new FirmwareArtifactService();
+            var workflow = new RecoveryWorkflow(firmwareService);
+            var request = new RecoveryRequest(serial, model, iface, dialog.FileName, new FirmwareArtifactSpec(DeviceModel: model), true);
+            var result = await workflow.RunAsync(request);
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Recovery Workflow");
+            sb.AppendLine("==================");
+            sb.AppendLine();
+            foreach (var phase in result.Phases)
+                sb.AppendLine($"[{(phase.Success ? "OK  " : "FAIL")}] {phase.Name}: {phase.Status}");
+            sb.AppendLine();
+            sb.AppendLine($"Firmware validated: {result.FirmwareValidated}");
+            sb.AppendLine($"Backup created:    {result.BackupCreated}");
+            sb.AppendLine($"Operation executed: {result.OperationExecuted}");
+            sb.AppendLine($"Verified:          {result.Verified}");
+            sb.AppendLine();
+            sb.AppendLine($"Summary: {result.Summary}");
+            _output.Text = sb.ToString();
+            _status.Text = "Status\r\n------\r\nRecovery: " + (result.Verified ? "Complete - verified" : result.OperationExecuted ? "Complete - verification failed" : "Stopped") + "\r\n\r\n" + _workspace.Root;
+            Speak(result.Verified ? "Recovery workflow complete" : "Recovery workflow stopped");
+        }
+        catch (Exception ex)
+        {
+            _status.Text = $"Status\r\n------\r\nRecovery error: {ex.Message}\r\n";
+            _logger.Error("Recovery workflow failed", ex);
+            Speak("Recovery error");
+        }
+    }
+
+
     private async Task ScanAsync()
     {
         SetActionButtons(false); _status.Text = "Status\r\n------\r\nChecking ADB...";
@@ -302,7 +347,7 @@ public sealed class MainForm : Form
         catch (Exception ex) { _status.Text = $"Status\r\n------\r\nUSB enumeration failed: {ex.Message}"; _logger.Error("USB enumeration failed.", ex); Speak("USB enumeration failed"); }
     }
 
-    private void SetActionButtons(bool enabled) { _scanButton.Enabled = enabled; _environmentButton.Enabled = enabled; _deepScanButton.Enabled = enabled && _device is not null; _usbScanButton.Enabled = enabled; _researchButton.Enabled = enabled && _device is not null; _rp2040Button.Enabled = enabled; _firmwareButton.Enabled = enabled; _fastbootButton.Enabled = enabled; }
+    private void SetActionButtons(bool enabled) { _scanButton.Enabled = enabled; _environmentButton.Enabled = enabled; _deepScanButton.Enabled = enabled && _device is not null; _usbScanButton.Enabled = enabled; _researchButton.Enabled = enabled && _device is not null; _rp2040Button.Enabled = enabled; _firmwareButton.Enabled = enabled; _fastbootButton.Enabled = enabled; _recoveryWorkflowButton.Enabled = enabled; }
     private void SetOperationButtons(bool enabled) { _rebootButton.Enabled = enabled; _bootloaderButton.Enabled = enabled; _recoveryButton.Enabled = enabled; }
     private static string FormatDiagnostic(DiagnosticItem item) { var evidence = string.IsNullOrWhiteSpace(item.Evidence) ? string.Empty : $"\r\n    Evidence: {item.Evidence}"; return $"[{item.Status.ToString().ToUpperInvariant()}] {item.Name}: {item.Value}{evidence}"; }
     private static string FormatCapability(AndroidCapability item) => $"[{item.Status.ToString().ToUpperInvariant()}] {item.Name}\r\n    Evidence: {item.Evidence}\r\n    Meaning: {item.Explanation}";
