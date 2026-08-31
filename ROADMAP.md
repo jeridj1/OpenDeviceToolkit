@@ -2,7 +2,7 @@
 
 **Project Goal**: A Windows workbench for identifying, inspecting, documenting, diagnosing, backing up, programming, recovering, reverse-engineering, and repurposing electronic devices.
 
-**Current Focus**: Stabilizing foundation and implementing Research Engine with voice interaction and RP2040 hardware bridge support.
+**Current Focus**: Recovery workflows, expanded pinout database, and full UI integration of all backend capabilities.
 
 ---
 
@@ -162,7 +162,7 @@ The repository is the authoritative project memory. Important requirements and d
 - **SerialRp2040Controller**: Serial port (stub)
 - **UsbRp2040Controller**: USB (stub)
 - **Rp2040ControllerFactory**: Automatic controller selection
-- **PinoutDatabase**: Known chips (STM32F103, RP2040, etc.)
+- **PinoutDatabase**: Known chips (STM32F103, RP2040, nRF52840, SAMD21, STM32F407, ESP8266, CH32V003, ESP32, ATmega328P, Snapdragon 855)
 - **ChipPinout, PinInfo, PinType**: Chip and pin models
 - **ProgrammingInterface**: Protocol interface definitions
 - **LogicCapture, LogicSample**: Signal capture models
@@ -171,7 +171,10 @@ The repository is the authoritative project memory. Important requirements and d
 - **MainForm**: Enhanced with all new features
 - **Voice Toggle**: Enable/disable voice mode
 - **Research Button**: Initiates research workflow
-- **RP2040 Button**: Connects and displays bridge info
+- **RP2040 Button**: Runs guided ProbeWorkflow with observations and capability inference
+- **Firmware Button**: Validates firmware artifacts (SHA-256, size, model)
+- **Fastboot Button**: Lists devices in fastboot mode
+- **Recovery Workflow Button**: Runs 6-phase end-to-end recovery workflow
 - **E-Waste Mode**: Checkbox with visual indicator
 - **Voice Panel**: Hidden panel for voice input
 
@@ -181,7 +184,8 @@ The repository is the authoritative project memory. Important requirements and d
 - **System.Management** for USB enumeration
 - **Moq** added for unit testing
 
-#### Tests
+#
+### Tests
 - **ResearchEngineTests**: Unit tests for research components
 - **SpeechServiceTests**: Unit tests for voice command parsing
 
@@ -254,7 +258,8 @@ The eventual research engine should investigate devices with little or no public
 - Artifacts
 - Next steps
 
-It should be capable of discovering useful programming, debugging, recovery, control, or repurposing paths that are not already encoded as a standard provider procedure.
+It should be capable of discovering 
+useful programming, debugging, recovery, control, or repurposing paths that are not already encoded as a standard provider procedure.
 
 ---
 
@@ -297,10 +302,10 @@ Future developers or AI agents should:
 
 ## Current Branch Status
 
-**Branch**: `feature/stabilize-foundation`  
-**Status**: Active development with major features implemented  
-**Next**: Verify all features, complete Research Engine, add more research sources
+**Branch**: `main`  
+**Status**: 0.2 Alpha with full UI integration of recovery workflows, expanded pinout database, and operation guard  
+**Next**: Expand test coverage, add LG/Qualcomm tool detection, implement safe backup workflows
 
 ---
 
-**Last Updated**: August 14, 2026
+**Last Updated**: August 31, 2026
