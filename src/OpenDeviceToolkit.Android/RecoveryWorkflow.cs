@@ -84,7 +84,7 @@ public sealed class RecoveryWorkflow
         }
         catch (Exception ex)
         {
-            phases.Add(new RecoveryPhase("Validate firmware", "Failed: " + ex.Message, success: false));
+            phases.Add(new RecoveryPhase("Validate firmware", "Failed: " + ex.Message, Success: false));
             return Final(phases, false, backupCreated, false, false, "Firmware validation failed; workflow stopped before any write.");
         }
         if (!validated)
@@ -92,13 +92,13 @@ public sealed class RecoveryWorkflow
 
         // Phase 4: back up recoverable state (recorded; real backup is the caller's job).
         backupCreated = true;
-        phases.Add(new RecoveryPhase("Backup state", "Backup step recorded (no-op in workflow core).", success: true));
+        phases.Add(new RecoveryPhase("Backup state", "Backup step recorded (no-op in workflow core).", Success: true));
 
         // Phase 5: guarded operation (no-op without explicit confirmation).
         var plan = new PlannedOperation(
             _operation?.Name ?? "device operation",
             _operation?.Risk ?? OperationRisk.PersistentWrite,
-            ready: validated,
+            Ready: validated,
             new[] { "Verified target artifact and checksum", "Explicit user confirmation" },
             "Firmware verified.");
         bool executed = false;
@@ -107,7 +107,7 @@ public sealed class RecoveryWorkflow
             OperationGuard.Require(plan, request.DeviceSerial, request.ExplicitlyConfirmed);
             if (_operation is null)
             {
-                phases.Add(new RecoveryPhase("Guarded operation", "Guard passed; no operation bound (no-op).", success: true));
+                phases.Add(new RecoveryPhase("Guarded operation", "Guard passed; no operation bound (no-op).", Success: true));
             }
             else
             {
@@ -117,7 +117,7 @@ public sealed class RecoveryWorkflow
         }
         catch (OperationBlockedException ex)
         {
-            phases.Add(new RecoveryPhase("Guarded operation", "Blocked by guard: " + ex.Message, success: false));
+            phases.Add(new RecoveryPhase("Guarded operation", "Blocked by guard: " + ex.Message, Success: false));
             return Final(phases, validated, backupCreated, false, false, "Operation blocked by guard: " + ex.Message);
         }
 
@@ -126,7 +126,7 @@ public sealed class RecoveryWorkflow
         if (_operation is null)
         {
             verified = true;
-            phases.Add(new RecoveryPhase("Verify", "No operation bound; verification skipped (no-op).", success: true));
+            phases.Add(new RecoveryPhase("Verify", "No operation bound; verification skipped (no-op).", Success: true));
         }
         else
         {
@@ -136,7 +136,7 @@ public sealed class RecoveryWorkflow
             }
             catch (Exception ex)
             {
-                phases.Add(new RecoveryPhase("Verify", "Verification failed: " + ex.Message, success: false));
+                phases.Add(new RecoveryPhase("Verify", "Verification failed: " + ex.Message, Success: false));
                 return Final(phases, validated, backupCreated, executed, false, "Post-operation verification failed.");
             }
             phases.Add(new RecoveryPhase("Verify", verified ? "Post-operation verification passed." : "Verification reported failure.", verified));
