@@ -13,6 +13,12 @@ public sealed class OperationGuardTests
     private static PlannedOperation WriteBlocked() =>
         new("Flash firmware", OperationRisk.PersistentWrite, false, new[] { "Verified checksum" }, "Bootloader locked.");
 
+    private static PlannedOperation StateChangeReady() =>
+        new("RebootSystem", OperationRisk.StateChange, true, new[] { "ADB device state must be Connected" }, "ADB is online.");
+
+    private static PlannedOperation StateChangeBlocked() =>
+        new("RebootSystem", OperationRisk.StateChange, false, new[] { "ADB device state must be Connected" }, "Device not connected.");
+
     [Fact]
     public void ReadOnlyOperationRequiresTargetSerial()
     {
@@ -51,5 +57,25 @@ public sealed class OperationGuardTests
     {
         Assert.Throws<ArgumentNullException>(() =>
             OperationGuard.Require(null!, "ABC123", explicitlyConfirmed: false));
+    }
+
+    [Fact]
+    public void StateChangeOperationRequiresExplicitConfirmation()
+    {
+        Assert.Throws<OperationBlockedException>(() =>
+            OperationGuard.Require(StateChangeReady(), "ABC123", explicitlyConfirmed: false));
+    }
+
+    [Fact]
+    public void ConfirmedStateChangeOperationPasses()
+    {
+        OperationGuard.Require(StateChangeReady(), "ABC123", explicitlyConfirmed: true);
+    }
+
+    [Fact]
+    public void StateChangeOperationBlockedWhenNotReady()
+    {
+        Assert.Throws<OperationBlockedException>(() =>
+            OperationGuard.Require(StateChangeBlocked(), "ABC123", explicitlyConfirmed: true));
     }
 }
