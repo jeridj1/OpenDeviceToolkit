@@ -2,15 +2,15 @@ using OpenDeviceToolkit.Hardware.Rp2040;
 
 namespace OpenDeviceToolkit.Hardware;
 
-public sealed record ProbeObservation(string Name, string Value, bool Success);
-public sealed record ProbeCapability(string Name, string Evidence, bool Available);
+public sealed record ProbeWorkflowObservation(string Name, string Value, bool Success);
+public sealed record ProbeWorkflowCapability(string Name, string Evidence, bool Available);
 
 public sealed record ProbeWorkflowResult(
     string TargetDescription,
     IReadOnlyList<string> ConnectionGuidance,
     bool Connected,
-    IReadOnlyList<ProbeObservation> Observations,
-    IReadOnlyList<ProbeCapability> Capabilities,
+    IReadOnlyList<ProbeWorkflowObservation> Observations,
+    IReadOnlyList<ProbeWorkflowCapability> Capabilities,
     IReadOnlyList<string> Notes);
 
 /// <summary>
@@ -31,18 +31,18 @@ public sealed class ProbeWorkflow
     /// Infers capabilities purely from observed voltage and any known chip pinout.
     /// Kept static so it can be unit-tested without a controller or hardware.
     /// </summary>
-    public static IReadOnlyList<ProbeCapability> InferCapabilities(double? voltage, ChipPinout? pinout)
+    public static IReadOnlyList<ProbeWorkflowCapability> InferCapabilities(double? voltage, ChipPinout? pinout)
     {
-        var caps = new List<ProbeCapability>();
+        var caps = new List<ProbeWorkflowCapability>();
 
         var voltageKnown = voltage is > 0 and <= 5.5;
-        caps.Add(new ProbeCapability(
+        caps.Add(new ProbeWorkflowCapability(
             "Read-only GPIO/logic observation",
             voltageKnown ? "Target voltage within measurable range." : "Voltage unknown.",
             voltageKnown));
 
         var inRp2040Domain = voltage is >= 1.8 and <= 3.6;
-        caps.Add(new ProbeCapability(
+        caps.Add(new ProbeWorkflowCapability(
             "Direct GPIO drive (no level shifting)",
             inRp2040Domain ? "Target voltage in RP2040 1.8-3.6V domain." : "Voltage outside the RP2040 GPIO domain; level shifting required.",
             inRp2040Domain));
@@ -50,14 +50,14 @@ public sealed class ProbeWorkflow
         if (pinout is not null)
         {
             foreach (var iface in pinout.ProgrammingInterfaces)
-                caps.Add(new ProbeCapability(
+                caps.Add(new ProbeWorkflowCapability(
                     iface.Type + " (known pinout)",
                     "Pinout for " + pinout.Name + " is in the database.",
                     available: true));
         }
         else
         {
-            caps.Add(new ProbeCapability(
+            caps.Add(new ProbeWorkflowCapability(
                 "Known-chip programming interface",
                 "No matching pinout in the database.",
                 available: false));
@@ -89,7 +89,7 @@ public sealed class ProbeWorkflow
         }
 
         // Phase 3: capture read-only observations.
-        var observations = new List<ProbeObservation>();
+        var observations = new List<ProbeWorkflowObservation>();
         double? voltage = null;
         if (connected)
         {
@@ -101,18 +101,18 @@ public sealed class ProbeWorkflow
             {
                 voltage = null;
             }
-            observations.Add(new ProbeObservation("Target voltage (GPIO26)", voltage is > 0 ? voltage.Value.ToString("0.0") + "V" : "unknown", voltage is > 0));
-            observations.Add(new ProbeObservation("Controller mode", _controller.CurrentMode.ToString(), success: true));
-            observations.Add(new ProbeObservation("Available modes", string.Join(", ", _controller.AvailableModes), success: true));
+            observations.Add(new ProbeWorkflowObservation("Target voltage (GPIO26)", voltage is > 0 ? voltage.Value.ToString("0.0") + "V" : "unknown", voltage is > 0));
+            observations.Add(new ProbeWorkflowObservation("Controller mode", _controller.CurrentMode.ToString(), success: true));
+            observations.Add(new ProbeWorkflowObservation("Available modes", string.Join(", ", _controller.AvailableModes), success: true));
 
             try
             {
                 var capture = await _controller.CaptureLogicAsync(new[] { 0, 1 }, TimeSpan.FromMilliseconds(10), 1000, cancellationToken);
-                observations.Add(new ProbeObservation("Logic activity (GP0/GP1)", capture.Samples.Count + " samples", capture.Samples.Count > 0));
+                observations.Add(new ProbeWorkflowObservation("Logic activity (GP0/GP1)", capture.Samples.Count + " samples", capture.Samples.Count > 0));
             }
             catch (Exception ex)
             {
-                observations.Add(new ProbeObservation("Logic activity (GP0/GP1)", "capture failed: " + ex.Message, success: false));
+                observations.Add(new ProbeWorkflowObservation("Logic activity (GP0/GP1)", "capture failed: " + ex.Message, success: false));
             }
         }
 
