@@ -41,7 +41,7 @@ public sealed class FastbootOperationService
 
         var vars = await _fastboot.GetVarAsync(serial, name, cancellationToken);
         var value = vars.TryGetValue(name, out var v) ? v : "(not set)";
-        return new("getvar " + name, true, name + ": " + v is null ? "(not set)" : value);
+        return new("getvar " + name, true, name + ": " + value);
     }
 
     public async Task<FastbootOperationResult> OemDeviceInfoAsync(string serial, CancellationToken cancellationToken = default)
