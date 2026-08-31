@@ -11,8 +11,8 @@ public static class OperationGuard
     /// <summary>
     /// Validates that a planned operation may proceed; throws
     /// <see cref="OperationBlockedException"/> otherwise. Read-only operations require
-    /// an identified target. <see cref="OperationRisk.PersistentWrite"/> operations
-    /// additionally require the plan to be ready and explicit confirmation.
+    /// an identified target. Any non-read-only operation additionally requires the plan
+    /// to be ready and explicit confirmation.
     /// </summary>
     public static void Require(PlannedOperation operation, string deviceSerial, bool explicitlyConfirmed)
     {
@@ -24,8 +24,8 @@ public static class OperationGuard
         if (!operation.Ready)
             throw new OperationBlockedException($"Operation '{operation.Name}' is not ready: {operation.Reason}");
 
-        if (operation.Risk == OperationRisk.PersistentWrite && !explicitlyConfirmed)
-            throw new OperationBlockedException($"Operation '{operation.Name}' modifies persistent device state and requires explicit confirmation.");
+        if (operation.Risk != OperationRisk.ReadOnly && !explicitlyConfirmed)
+            throw new OperationBlockedException($"Operation '{operation.Name}' modifies device state and requires explicit confirmation.");
     }
 }
 

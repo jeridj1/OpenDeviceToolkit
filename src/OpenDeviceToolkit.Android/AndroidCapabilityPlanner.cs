@@ -3,6 +3,7 @@ namespace OpenDeviceToolkit.Android;
 public enum OperationRisk
 {
     ReadOnly,
+    StateChange,
     PersistentWrite
 }
 
