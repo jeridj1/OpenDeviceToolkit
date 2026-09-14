@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.IO.Ports" Version="10.0.11" />
-    <PackageReference Include="System.Management" Version="10.0.11" />
+    <PackageReference Include="System.IO.Ports" Version="10.0.12" />
+    <PackageReference Include="System.Management" Version="10.0.12" />
   </ItemGroup>
 
   <!-- The repository contains two generations of the hardware API. The split RP2040
