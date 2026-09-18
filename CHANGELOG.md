@@ -6,6 +6,12 @@ All notable changes to Open Device Toolkit are documented here.
 
 ### Added
 
+#### Autonomous AI engineering continuity
+- Added root `AGENTS.md` with mandatory session, verification, scope-control, and anti-recursion rules for AI/developer work.
+- Added `PROJECT_STATE.md` as the durable current-state ledger for continuation across sessions and usage limits.
+- Added `docs/AI_WORK_PROTOCOL.md` defining the Observe → bounded objective → change → verify → record work loop.
+
+
 #### Operation guard and safety infrastructure
 - OperationGuard.Require: centralized safety gate validating target identification, readiness, and explicit confirmation before any non-read-only operation.
 - OperationRisk classification (ReadOnly, StateChange, PersistentWrite) distinguishing reboots from persistent writes.
