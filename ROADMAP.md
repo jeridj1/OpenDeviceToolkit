@@ -87,6 +87,7 @@ The repository is the authoritative project memory. Important requirements and d
 - [x] Evidence-backed hypothesis ranking and deduplication
 - [x] AI-friendly research reports and continuation handoff
 - [x] Long-running task execution and resumable sessions
+- [x] Execution adapter contract prevents fake/simulated success
 - [x] Explicit escalation gates for persistent or destructive operations
 - [x] Operator-authorized experimental risk envelope
 
@@ -101,6 +102,7 @@ The repository is the authoritative project memory. Important requirements and d
 **Remaining for 0.6**:
 - [ ] Additional research sources (XDA Forums, Exploit-DB, local database)
 - [ ] Offline hypothesis testing (without online search)
+- [ ] Concrete research-step execution adapters
 - [ ] RP2040 actual hardware communication (serial/USB implementation)
 - [ ] Logic analyzer visualization and protocol decoding
 - [ ] Complete device-specific knowledge cards
