@@ -83,6 +83,65 @@ public class ResearchEngineTests
         Assert.True(RiskLevel.EWasteMode.RequiresDoubleConfirmation());
     }
     
+
+    [Fact]
+    public async Task ExecuteNextStep_DoesNotClaimSuccessWithoutExecutor()
+    {
+        var plan = new ResearchPlan("device", "objective");
+        plan.AddStep(new ResearchStep("inspect", RiskLevel.ReadOnly));
+
+        var success = await _engine.ExecuteNextStepAsync(plan);
+
+        Assert.False(success);
+        Assert.False(plan.Steps[0].Success);
+        Assert.Contains("No execution adapter", plan.Steps[0].Result);
+    }
+
+    [Fact]
+    public async Task ExecuteNextStep_DoesNotAutoAuthorizePersistentWrites()
+    {
+        var plan = new ResearchPlan("device", "objective");
+        plan.AddStep(new ResearchStep("write", RiskLevel.PersistentWrite));
+
+        var success = await _engine.ExecuteNextStepAsync(plan, autoConfirmSafe: true);
+
+        Assert.False(success);
+        Assert.Null(plan.Steps[0].CompletedAt);
+        Assert.Equal(-1, plan.CurrentStepIndex);
+    }
+
+    [Fact]
+    public async Task ExecuteNextStep_UsesRegisteredExecutor()
+    {
+        var executor = new TestResearchStepExecutor();
+        using var engine = new ResearchEngine(_workspace, _logger, _runner, executor);
+        var plan = new ResearchPlan("device", "objective");
+        plan.AddStep(new ResearchStep("inspect", RiskLevel.ReadOnly));
+
+        var success = await engine.ExecuteNextStepAsync(plan);
+
+        Assert.True(success);
+        Assert.True(executor.Called);
+        Assert.Equal("executed", plan.Steps[0].Result);
+    }
+
+    private sealed class TestResearchStepExecutor : IResearchStepExecutor
+    {
+        public bool Called { get; private set; }
+
+        public Task<ResearchExecutionResult> ExecuteAsync(
+            ResearchStep step,
+            CancellationToken cancellationToken = default)
+        {
+            Called = true;
+            return Task.FromResult(new ResearchExecutionResult(
+                Success: true,
+                Message: "executed",
+                Executed: true,
+                Risk: step.Risk));
+        }
+    }
+
     [Fact]
     public void DeduplicateResults_RemovesDuplicates()
     {
