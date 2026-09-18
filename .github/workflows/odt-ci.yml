@@ -1,0 +1,36 @@
+name: ODT CI
+
+on:
+  push:
+    branches:
+      - main
+      - foundation/**
+      - feature/**
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: build-test
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore OpenDeviceToolkit.sln
+
+      - name: Build
+        run: dotnet build OpenDeviceToolkit.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test tests/OpenDeviceToolkit.Tests/OpenDeviceToolkit.Tests.csproj --configuration Release --no-build --verbosity normal
