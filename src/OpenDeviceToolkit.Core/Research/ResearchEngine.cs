@@ -8,13 +8,15 @@ public sealed class ResearchEngine : IDisposable
     private readonly Workspace _workspace;
     private readonly AppLogger _logger;
     private readonly CommandRunner _commandRunner;
+    private readonly IResearchStepExecutor _stepExecutor;
     private ResearchSession? _currentSession;
     
-    public ResearchEngine(Workspace workspace, AppLogger logger, CommandRunner commandRunner)
+    public ResearchEngine(Workspace workspace, AppLogger logger, CommandRunner commandRunner, IResearchStepExecutor? stepExecutor = null)
     {
         _workspace = workspace;
         _logger = logger;
         _commandRunner = commandRunner;
+        _stepExecutor = stepExecutor ?? new UnsupportedResearchStepExecutor();
         _sources.Add(new GitHubSearch(new HttpClient(), logger));
         _sources.Add(new XdaSearch(new HttpClient(), logger));
         _sources.Add(new OfflineResearcher(logger));
@@ -86,11 +88,36 @@ public sealed class ResearchEngine : IDisposable
     public async Task<bool> ExecuteNextStepAsync(ResearchPlan plan, bool autoConfirmSafe = true, CancellationToken ct = default)
     {
         if (plan.IsComplete) return false;
+
         var step = plan.NextStep;
-        if (step == null || (step.RequiresConfirmation && !autoConfirmSafe)) return false;
+        if (step == null) return false;
+
+        // "Auto confirm safe" may only bypass confirmation for read-only/reversible work.
+        // Persistent or destructive work always requires an explicit authorization path.
+        if (step.RequiresConfirmation && (!autoConfirmSafe || step.Risk > RiskLevel.Reversible))
+            return false;
+
         plan.Advance();
-        try { _logger.Info($"Executing: {plan.CurrentStep?.Description}"); await Task.Delay(100, ct); plan.CompleteCurrentStep(true, "OK"); return true; }
-        catch (Exception ex) { _logger.Error($"Step failed: {ex.Message}", ex); plan.CompleteCurrentStep(false, ex.Message); return false; }
+        try
+        {
+            _logger.Info($"Executing: {step.Description}");
+            var execution = await _stepExecutor.ExecuteAsync(step, ct);
+            plan.CompleteCurrentStep(execution.Success, execution.Message);
+            if (!execution.Executed)
+                _logger.Info($"Step not executed: {execution.Message}");
+            return execution.Success;
+        }
+        catch (OperationCanceledException)
+        {
+            plan.CompleteCurrentStep(false, "Cancelled");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Step failed: {ex.Message}", ex);
+            plan.CompleteCurrentStep(false, ex.Message);
+            return false;
+        }
     }
     
     public async Task<ResearchPlan> RunWorkflowAsync(string deviceId, string objective, UsbDeviceInfo? deviceInfo = null, bool autoExecute = false, CancellationToken ct = default)
