@@ -2,7 +2,7 @@
 
 **Project Goal**: A Windows workbench for identifying, inspecting, documenting, diagnosing, backing up, programming, recovering, reverse-engineering, and repurposing electronic devices.
 
-**Current Focus**: Recovery workflows, expanded pinout database, and full UI integration of all backend capabilities.
+**Current Focus**: Stabilize the verified foundation, then turn the research engine into a real end-to-end execution framework and establish the transport foundation for the eventual Android-first hardware lab.
 
 ---
 
@@ -87,6 +87,7 @@ The repository is the authoritative project memory. Important requirements and d
 - [x] Evidence-backed hypothesis ranking and deduplication
 - [x] AI-friendly research reports and continuation handoff
 - [x] Long-running task execution and resumable sessions
+- [x] Execution adapter contract prevents fake/simulated success
 - [x] Explicit escalation gates for persistent or destructive operations
 - [x] Operator-authorized experimental risk envelope
 
@@ -101,6 +102,7 @@ The repository is the authoritative project memory. Important requirements and d
 **Remaining for 0.6**:
 - [ ] Additional research sources (XDA Forums, Exploit-DB, local database)
 - [ ] Offline hypothesis testing (without online search)
+- [ ] Concrete research-step execution adapters
 - [ ] RP2040 actual hardware communication (serial/USB implementation)
 - [ ] Logic analyzer visualization and protocol decoding
 - [ ] Complete device-specific knowledge cards
@@ -309,3 +311,18 @@ Future developers or AI agents should:
 ---
 
 **Last Updated**: August 31, 2026
+
+
+---
+
+## Autonomous Engineering Continuity
+
+The repository now includes a mandatory root-level `AGENTS.md`, `PROJECT_STATE.md`, and `docs/AI_WORK_PROTOCOL.md`.
+
+These files are not feature claims. They define how future AI/developer sessions must preserve project continuity, control scope, verify work, record failures, and avoid recursive fix loops.
+
+**Current branch:** `foundation/autonomous-agent-contract`
+
+**Immediate engineering gate:** establish a verified build/test baseline before advancing the autonomous hardware-lab implementation.
+
+**Do not mark the universal hardware-lab goal complete until actual transport, hardware interaction, research execution, persistence, and appropriate validation exist.**

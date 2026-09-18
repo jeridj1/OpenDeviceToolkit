@@ -4,7 +4,7 @@
 
 This file is the short operational handoff for any developer or AI agent continuing Open Device Toolkit (ODT). The repository, not private conversation history, is the source of truth.
 
-Before changing code, read this file, `ROADMAP.md`, `ARCHITECTURE.md`, `docs/EXPERIMENTAL_RESEARCH_ENGINE.md`, the relevant source files, tests, and `CHANGELOG.md`.
+Before changing code, read `AGENTS.md`, this file, `PROJECT_STATE.md`, `ROADMAP.md`, `ARCHITECTURE.md`, `docs/EXPERIMENTAL_RESEARCH_ENGINE.md`, the relevant source files, tests, and `CHANGELOG.md`. `AGENTS.md` is the mandatory anti-wandering engineering contract.
 
 ## Ultimate product goal
 
@@ -75,6 +75,8 @@ Keep documentation ordered by lifecycle: goal, architecture, current implementat
 If a requirement changes, update the authoritative document and remove stale wording elsewhere rather than adding another competing note.
 
 ## Work continuation rules
+
+The root `AGENTS.md` and `PROJECT_STATE.md` are authoritative for session behavior and current state. If older documentation conflicts with them, reconcile the stale documentation rather than creating a second rule set.
 
 At the beginning of a work session:
 
