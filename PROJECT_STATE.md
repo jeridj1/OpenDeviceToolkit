@@ -53,7 +53,7 @@ A phase may be marked complete only when its tests or hardware evidence exist an
 
 ## Current next action
 
-Complete the verified baseline on the current branch lineage, then select the smallest missing end-to-end capability from Phase C. Do not begin a universal hardware rewrite.
+Establish the build/test baseline in an environment with .NET/GitHub Actions available, then implement the first concrete execution adapter and USB transport capability. Do not begin a universal hardware rewrite.
 
 ## Known constraints
 
@@ -69,3 +69,12 @@ Complete the verified baseline on the current branch lineage, then select the sm
 - Confirmed the long-term autonomous hardware-lab direction already exists in the repository.
 - Created branch `foundation/autonomous-agent-contract`.
 - Added this state file and root-level `AGENTS.md` to make continuation behavior explicit and resistant to scope drift.
+
+
+## Latest implementation work
+
+- Added `IResearchStepExecutor` and `ResearchExecutionResult`.
+- Added `UnsupportedResearchStepExecutor`, which deliberately refuses to report success when no real execution adapter exists.
+- Changed `ResearchEngine.ExecuteNextStepAsync` to delegate to a real executor and to prevent `autoConfirmSafe` from authorizing persistent or destructive operations.
+- Added tests covering missing executors, risk blocking, and successful execution through a registered test executor.
+- CI workflow runs were not exposed for the new commits. A local clone/build could not be performed from the current execution environment because outbound GitHub DNS/network access is unavailable. This is an environment limitation, not a passing-build claim.
