@@ -224,9 +224,7 @@ public static class Rp2040ControllerFactory
     /// </summary>
     public static IRp2040Controller GetController()
     {
-        // For now, return a mock controller
-        // TODO: Implement actual serial/USB communication
-        return _current ??= new MockRp2040Controller();
+        return _current ??= new SerialRp2040Controller();
     }
     
     /// <summary>
