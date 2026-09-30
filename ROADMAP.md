@@ -2,7 +2,7 @@
 
 **Project Goal**: A Windows workbench for identifying, inspecting, documenting, diagnosing, backing up, programming, recovering, reverse-engineering, and repurposing electronic devices.
 
-**Current Focus**: Recovery workflows, expanded pinout database, and full UI integration of all backend capabilities.
+**Current Focus**: Stabilizing foundation, completing Research Engine, implementing RP2040 hardware communication
 
 ---
 
@@ -13,9 +13,9 @@ Open Device Toolkit (ODT) is a Windows workbench for **autonomous hardware resea
 1. Connect or describe a device
 2. State a desired objective (via UI or voice)
 3. Let ODT determine the best available path:
-   - Known procedures → Guided research → Experimental escalation (when authorized)
+   - Known procedures -> Guided research -> Experimental escalation (when authorized)
 
-**Workflow**: `objective → automatic reconnaissance → known procedures → guided research → experimental escalation (when authorized) → result and durable research record`
+**Workflow**: `objective -> automatic reconnaissance -> known procedures -> guided research -> experimental escalation (when authorized) -> result and durable research record`
 
 The repository is the authoritative project memory. Important requirements and decisions must not depend on private conversation history.
 
@@ -23,7 +23,7 @@ The repository is the authoritative project memory. Important requirements and d
 
 ## Milestones
 
-### ✅ 0.1 Alpha - Device Reconnaissance **[COMPLETE]**
+### 0.1 Alpha - Device Reconnaissance [COMPLETE]
 - [x] Repository and architecture baseline
 - [x] Windows GUI shell
 - [x] ADB discovery
@@ -36,7 +36,7 @@ The repository is the authoritative project memory. Important requirements and d
 - [x] Automated parser tests
 - [x] CI test/build workflow configured
 
-### ✅ 0.2 - PC/Tooling Diagnostics **[MOSTLY COMPLETE]**
+### 0.2 - PC/Tooling Diagnostics [MOSTLY COMPLETE]
 - [x] Driver inventory (via USB enumeration)
 - [x] ADB/Fastboot tool detection
 - [x] Tool version reporting
@@ -45,7 +45,7 @@ The repository is the authoritative project memory. Important requirements and d
 - [x] USB device inventory (fully implemented via WMI)
 - [ ] Windows device/driver problem reporting (partial)
 
-### ✅ 0.3 - Android/LG Research Workbench **[PARTIALLY COMPLETE]**
+### 0.3 - Android/LG Research Workbench [PARTIALLY COMPLETE]
 - [x] Read-only boot/USB state probes
 - [x] Read-only named partition inspection
 - [x] Read-only kernel partition table inspection
@@ -63,23 +63,23 @@ The repository is the authoritative project memory. Important requirements and d
 - [ ] Device-specific knowledge cards
 - [ ] Structured diagnostic findings (partial)
 
-### 🎯 0.4 - Safe Backup and Snapshots **[NOT STARTED]**
+### 0.4 - Safe Backup and Snapshots [NOT STARTED]
 - [ ] Read-only partition metadata
 - [ ] Supported partition backup workflows
 - [ ] SHA-256 verification
 - [ ] Device snapshots and comparisons
 - [ ] Backup manifests
 
-### 🎯 0.5 - Plugin Architecture **[NOT STARTED]**
+### 0.5 - Plugin Architecture [NOT STARTED]
 - [ ] Device/provider interfaces
 - [ ] Android provider
 - [ ] LG provider
 - [ ] Qualcomm provider
 - [ ] External plugin loading
 
-### ✅ 0.6 - Experimental Research Engine **[PARTIALLY COMPLETE - MAJOR PROGRESS]**
+### 0.6 - Experimental Research Engine [PARTIALLY COMPLETE - MAJOR PROGRESS]
 
-**Core Research Engine (NEW - Implemented in feature/stabilize-foundation)**:
+**Core Research Engine (Implemented)**:
 - [x] Research-session model and persistent experiment history
 - [x] Automatic hardware/interface fingerprinting (USB enumeration)
 - [x] Progressive passive-to-active probing workflow (RiskLevel system)
@@ -91,21 +91,23 @@ The repository is the authoritative project memory. Important requirements and d
 - [x] Operator-authorized experimental risk envelope
 
 **Additional Features (Beyond Original Roadmap)**:
-- [x] **Voice Interaction**: Hands-free operation with speech recognition (System.Speech)
-- [x] **GitHub Search**: Online exploit/datasheet/code search with confidence scoring
-- [x] **RP2040 multifunction research instrument integration** (interface + mock implementation)
-- [x] **UART/SPI/I2C/JTAG/SWD research workflows** (mode definitions)
-- [x] **Device-specific research plans and knowledge cards** (pinout database)
-- [x] **Unconventional/undocumented capability research** (hypothesis system)
+- [x] Voice Interaction: Hands-free operation with speech recognition (System.Speech)
+- [x] GitHub Search: Online exploit/datasheet/code search with confidence scoring
+- [x] XDA Forums Search: Online forum search for device-specific guides
+- [x] Offline Researcher: USB VID/PID-based fingerprinting when offline
+- [x] RP2040 multifunction research instrument integration (interface + mock implementation)
+- [x] UART/SPI/I2C/JTAG/SWD research workflows (mode definitions)
+- [x] Device-specific research plans and knowledge cards (pinout database)
+- [x] Unconventional/undocumented capability research (hypothesis system)
 
 **Remaining for 0.6**:
-- [ ] Additional research sources (XDA Forums, Exploit-DB, local database)
+- [ ] Exploit-DB research source integration
 - [ ] Offline hypothesis testing (without online search)
 - [ ] RP2040 actual hardware communication (serial/USB implementation)
 - [ ] Logic analyzer visualization and protocol decoding
 - [ ] Complete device-specific knowledge cards
 
-### 🔮 1.0 - Stable Workbench **[NOT STARTED]**
+### 1.0 - Stable Workbench [NOT STARTED]
 - [ ] Polished UI
 - [ ] Complete documentation
 - [ ] Full automated test coverage
@@ -114,9 +116,9 @@ The repository is the authoritative project memory. Important requirements and d
 
 ---
 
-## Current Implementation (feature/stabilize-foundation)
+## Current Implementation (main branch)
 
-### ✅ Completed Features
+### Completed Features
 
 #### Core Infrastructure
 - **Configuration System**: `AppConfig.cs` with nested settings classes
@@ -137,38 +139,72 @@ The repository is the authoritative project memory. Important requirements and d
 - **Operation Planning**: Generates workflows with risk assessment
 
 #### Research Engine
-- **RiskLevel**: 5-tier classification (ReadOnly → EWasteMode)
+- **RiskLevel**: 5-tier classification (ReadOnly -> EWasteMode)
 - **ResearchSession**: Tracks hypotheses, tests, results, progress
 - **ResearchPlan**: Structured step-by-step workflows
 - **ResearchResult**: Search results with confidence and risk scoring
 - **ResearchHypothesis**: Potential methods with evidence
 - **ResearchEngine**: Main coordinator
-- **GitHubSearch**: Online search implementation
+- **GitHubSearch**: Online search implementation with confidence scoring
+- **XdaSearch**: XDA Forums search implementation
+- **OfflineResearcher**: USB VID/PID fingerprinting when offline
 - **IResearchSource**: Extensible source interface
 
 #### Voice Interaction
 - **SpeechService**: Windows.Speech STT and TTS
-- **VoiceCommandParser**: Natural language → structured commands
+- **VoiceIntentDetector**: 4-layer intent detection (keyword, fuzzy, context, free-form)
+- **VoiceCommandParser**: Natural language -> structured commands
 - **VoiceCommand**: Command model with type, device, objective
 - **VoiceCommandType**: ScanDevice, GainAccess, GenerateReport, RebootDevice, Help, Exit, CustomObjective
 - **Voice Mode**: UI toggle with visual feedback
 - **Voice Panel**: Text input fallback
+- **SynonymDatabase**: 100+ synonyms for natural language understanding
+- **ClarificationDialog**: Asks "Did you mean?" when uncertain
+- **VoiceContext**: Remembers device, objective, last action across conversations
 
 #### RP2040 Hardware Bridge
 - **IRp2040Controller**: Interface with 10 protocol modes
 - **Rp2040Mode**: GPIO, UART, SPI, I2C, SWD, JTAG, CMSIS-DAP, LogicAnalyzer, 1-Wire, CAN
 - **Rp2040ControllerBase**: Base implementation
 - **MockRp2040Controller**: For testing without hardware
-- **SerialRp2040Controller**: Serial port (stub)
-- **UsbRp2040Controller**: USB (stub)
+- **SerialRp2040Controller**: Serial port (stub - TODOs for actual implementation)
+- **UsbRp2040Controller**: USB (stub - TODOs for actual implementation)
 - **Rp2040ControllerFactory**: Automatic controller selection
-- **PinoutDatabase**: Known chips (STM32F103, RP2040, nRF52840, SAMD21, STM32F407, ESP8266, CH32V003, ESP32, ATmega328P, Snapdragon 855)
+- **PinoutDatabase**: 10+ known chips (STM32F103, RP2040, nRF52840, SAMD21, STM32F407, ESP8266, CH32V003, ESP32, ATmega328P, Snapdragon 855)
 - **ChipPinout, PinInfo, PinType**: Chip and pin models
 - **ProgrammingInterface**: Protocol interface definitions
 - **LogicCapture, LogicSample**: Signal capture models
+- **Wiring Instructions**: Step-by-step connection guides
+
+#### Operation Guard & Safety
+- **OperationGuard**: Centralized safety gate for all state-changing operations
+- **OperationRisk**: ReadOnly, StateChange, PersistentWrite classification
+- **PlannedOperation**: Captures operation details, risk, readiness, preconditions
+- **OperationBlockedException**: Thrown when safety preconditions unmet
+- **Android Operation Wiring**: Reboot operations funnel through OperationGuard
+
+#### Fastboot Support
+- **FastbootManager**: Drives fastboot CLI via CommandRunner
+- **FastbootOperationService**: getvar/oem (ReadOnly), reboot (StateChange), flash/erase (PersistentWrite)
+- **All operations gated by OperationGuard**
+
+#### Recovery Workflow
+- **RecoveryWorkflow**: 6-phase orchestration (identify, detect, validate, backup, guarded operation, verify)
+- **IRecoveryOperation**: Injectable interface for mock-testable operations
+- **Full UI integration** with phase-by-phase status display
+
+#### Firmware Handling
+- **FirmwareArtifactService**: Device-independent firmware acquisition, SHA-256 hashing, validation
+- **FirmwareArtifact/FirmwareArtifactSpec**: Artifact model with checksum, size, model match verification
+- **ValidationStatus**: Verified, HashMismatch, SizeMismatch, ModelMismatch, Missing
+
+#### Probe Workflow
+- **ProbeWorkflow**: Guided connection, observation capture (voltage, logic activity, controller mode)
+- **InferCapabilities**: Static method inferring safe operations from observed voltage and known chip pinouts
+- **6 unit tests** using MockRp2040Controller (no hardware needed)
 
 #### User Interface
-- **MainForm**: Enhanced with all new features
+- **MainForm**: Enhanced with all features integrated
 - **Voice Toggle**: Enable/disable voice mode
 - **Research Button**: Initiates research workflow
 - **RP2040 Button**: Runs guided ProbeWorkflow with observations and capability inference
@@ -177,17 +213,30 @@ The repository is the authoritative project memory. Important requirements and d
 - **Recovery Workflow Button**: Runs 6-phase end-to-end recovery workflow
 - **E-Waste Mode**: Checkbox with visual indicator
 - **Voice Panel**: Hidden panel for voice input
+- **Pinout Lookup Dialog**: Search and display chip pinouts
+- **Logic Analyzer Form**: Graphical waveform display
 
 #### Project Configuration
-- All projects target **.NET 8.0**
-- **System.Speech** reference added for voice
-- **System.Management** for USB enumeration
-- **Moq** added for unit testing
+- All projects target .NET 8.0
+- System.Speech reference added for voice
+- System.Management for USB enumeration
+- Moq added for unit testing
 
-#
 ### Tests
-- **ResearchEngineTests**: Unit tests for research components
-- **SpeechServiceTests**: Unit tests for voice command parsing
+- **AdbManagerTests**: ADB discovery and parsing
+- **AppConfigTests**: Configuration loading
+- **EnhancedToolLocatorTests**: Tool discovery
+- **FastbootManagerTests**: Fastboot operations
+- **FirmwareArtifactServiceTests**: Firmware validation
+- **OperationGuardTests**: Safety gate testing
+- **PinoutDatabaseTests**: Pinout lookup and matching
+- **ProbeWorkflowTests**: Probe workflow with mock controller
+- **RecoveryWorkflowTests**: End-to-end recovery workflow
+- **ResearchEngineTests**: Research engine components
+- **SpeechServiceTests**: Voice command parsing
+- **VoiceIntentDetectorTests**: Natural language intent detection
+- **ToolLocatorTests**: Tool discovery
+- **WorkspaceTests**: Workspace management
 
 ---
 
@@ -227,14 +276,14 @@ Default workspace: `D:\OpenDeviceToolkit\` (configurable via appsettings.json)
 
 ```text
 D:\OpenDeviceToolkit\
-├── Backups\
-├── Drivers\
-├── Downloads\
-├── Firmware\
-├── Logs\
-├── Reports\
-├── Tools\
-└── Workspace\  (contains WorkspaceData for research sessions)
++-- Backups\
++-- Drivers\
++-- Downloads\
++-- Firmware\
++-- Logs\
++-- Reports\
++-- Tools\
++-- Workspace\  (contains WorkspaceData for research sessions)
 ```
 
 The program makes the workspace configurable. The local workspace is ignored by Git so device data and firmware do not accidentally enter the repository.
@@ -258,8 +307,7 @@ The eventual research engine should investigate devices with little or no public
 - Artifacts
 - Next steps
 
-It should be capable of discovering 
-useful programming, debugging, recovery, control, or repurposing paths that are not already encoded as a standard provider procedure.
+It should be capable of discovering useful programming, debugging, recovery, control, or repurposing paths that are not already encoded as a standard provider procedure.
 
 ---
 
@@ -276,8 +324,8 @@ useful programming, debugging, recovery, control, or repurposing paths that are 
 6. Deliberate authorization
 
 **E-Waste Mode**: For disposable or already-failed devices, the operator may explicitly authorize an experimental risk envelope that allows the research engine to continue into potentially irreversible experiments. ODT must:
-1. Make the possibility of permanent damage **unmistakable**
-2. Obtain explicit confirmation (preferably **twice** for irreversible operations)
+1. Make the possibility of permanent damage unmistakable
+2. Obtain explicit confirmation (preferably twice for irreversible operations)
 3. Record what was authorized and what it attempted
 
 ---
@@ -286,15 +334,15 @@ useful programming, debugging, recovery, control, or repurposing paths that are 
 
 Future developers or AI agents should:
 1. Begin with `docs/AI_CONTINUATION.md` (to be created)
-2. Read this roadmap (`ROADMAP.md`)
-3. Read `ARCHITECTURE.md`
-4. Read `docs/EXPERIMENTAL_RESEARCH_ENGINE.md` (to be created)
+2. Read this roadmap (ROADMAP.md)
+3. Read ARCHITECTURE.md
+4. Read docs/EXPERIMENTAL_RESEARCH_ENGINE.md (to be created)
 5. Review relevant source/tests
-6. Read `CHANGELOG.md`
+6. Read CHANGELOG.md
 
-**When implementation status changes**: Update the roadmap  
-**When architecture changes**: Update ARCHITECTURE.md  
-**When research behavior changes**: Update research-engine documentation  
+**When implementation status changes**: Update the roadmap 
+**When architecture changes**: Update ARCHITECTURE.md 
+**When research behavior changes**: Update research-engine documentation 
 
 **Do not leave requirements only in conversation history.**
 
@@ -302,10 +350,15 @@ Future developers or AI agents should:
 
 ## Current Branch Status
 
-**Branch**: `main`  
-**Status**: 0.2 Alpha with full UI integration of recovery workflows, expanded pinout database, and operation guard  
-**Next**: Expand test coverage, add LG/Qualcomm tool detection, implement safe backup workflows
+**Branch**: `main` 
+**Status**: 0.2 Alpha with full UI integration of recovery workflows, expanded pinout database, operation guard, firmware handling, fastboot support, research engine (GitHub/XDA/Offline), voice interaction, and RP2040 bridge interface
+**Next**: 
+- Complete RP2040 hardware communication (Serial/USB)
+- Add Exploit-DB research source
+- Implement offline hypothesis testing
+- Add logic analyzer visualization
+- Expand test coverage
 
 ---
 
-**Last Updated**: August 31, 2026
+**Last Updated**: October 2026

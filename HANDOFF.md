@@ -1,8 +1,8 @@
 # Open Device Toolkit Handoff Guide
 
-**Last Updated**: August 14, 2026  
-**Branch**: `feature/stabilize-foundation`  
-**Status**: Active Development - Major Features Implemented
+**Last Updated**: October 2026  
+**Branch**: `main`  
+**Status**: Active Development - Major Features Implemented (0.2 Alpha + Partial 0.6)
 
 ---
 
@@ -21,7 +21,7 @@
 
 ## Current Implementation State
 
-### ✅ Fully Implemented (Alpha 0.1 + 0.2 + Partial 0.6)
+### Fully Implemented (Alpha 0.1 + 0.2 + Partial 0.6)
 
 #### Core Infrastructure
 - **Configuration System**: `AppConfig.cs` with JSON-based settings
@@ -40,35 +40,75 @@
 - **Capability Analysis**: Determines available operations for device
 - **Operation Planning**: Generates safe workflows with risk assessment
 
-#### Research Engine (Partial Milestone 0.6)
+#### Research Engine
 - **Risk Level System**: 5-tier risk classification with confirmation gates
   - `ReadOnly`, `Reversible`, `PersistentWrite`, `PotentialBrick`, `EWasteMode`
   - Extension methods for descriptions, colors, and confirmation requirements
 - **Research Sessions**: Tracks hypotheses, tests, results, and progress
 - **Research Plans**: Structured workflows for testing hypotheses
-- **GitHub Search**: Online exploit/datasheet/code search
+- **GitHub Search**: Online exploit/datasheet/code search with confidence scoring
+- **XDA Forums Search**: Online forum search for device-specific guides
+- **Offline Researcher**: USB VID/PID-based fingerprinting when offline
 - **Hypothesis Generation**: Creates testable hypotheses from search results
 - **Plan Execution**: Step-by-step testing with user confirmation
 
 #### Voice Interaction
 - **Speech Service**: Windows.Speech-based STT and TTS
-- **Command Parser**: Natural language → structured commands
+- **Voice Intent Detector**: 4-layer intent detection (keyword, fuzzy, context, free-form)
+- **Command Parser**: Natural language -> structured commands
 - **Supported Commands**: ScanDevice, GainAccess, GenerateReport, RebootDevice, Help, Exit, CustomObjective
 - **Voice Mode**: Toggle on/off, visual feedback, text fallback
+- **Synonym Database**: 100+ synonyms for natural language understanding
+- **Clarification Dialog**: Asks "Did you mean?" when uncertain
+- **Voice Context**: Remembers device, objective, last action across conversations
 
 #### RP2040 Hardware Bridge
 - **Controller Interface**: `IRp2040Controller` with 10 protocol modes (GPIO, UART, SPI, I2C, SWD, JTAG, CMSIS-DAP, LogicAnalyzer, 1-Wire, CAN)
-- **Pinout Database**: Known chip configurations (STM32F103, RP2040, etc.)
+- **Pinout Database**: 10+ known chip configurations (STM32F103, RP2040, ESP32, ESP8266, ATmega328P, Snapdragon 855, nRF52840, SAMD21, STM32F407, CH32V003)
 - **Mock Implementation**: For testing without hardware
-- **Serial/USB stubs**: Ready for hardware integration
+- **Serial/USB stubs**: Ready for hardware integration (TODOs remain for actual implementation)
 - **Factory Pattern**: Automatic controller selection
+- **Logic Capture**: Signal capture model with timestamped samples
+- **Wiring Instructions**: Step-by-step connection guides for known chips
+
+#### Operation Guard & Safety
+- **OperationGuard**: Centralized safety gate for all state-changing operations
+- **OperationRisk**: ReadOnly, StateChange, PersistentWrite classification
+- **PlannedOperation**: Captures operation details, risk, readiness, preconditions
+- **OperationBlockedException**: Thrown when safety preconditions unmet
+- **Android Operation Wiring**: Reboot operations funnel through OperationGuard
+
+#### Fastboot Support
+- **FastbootManager**: Drives fastboot CLI via CommandRunner
+- **FastbootOperationService**: getvar/oem (ReadOnly), reboot (StateChange), flash/erase (PersistentWrite)
+- **All operations gated by OperationGuard**
+
+#### Recovery Workflow
+- **RecoveryWorkflow**: 6-phase orchestration (identify, detect, validate, backup, guarded operation, verify)
+- **IRecoveryOperation**: Injectable interface for mock-testable operations
+- **Full UI integration** with phase-by-phase status display
+
+#### Firmware Handling
+- **FirmwareArtifactService**: Device-independent firmware acquisition, SHA-256 hashing, validation
+- **FirmwareArtifact/FirmwareArtifactSpec**: Artifact model with checksum, size, model match verification
+- **ValidationStatus**: Verified, HashMismatch, SizeMismatch, ModelMismatch, Missing
+
+#### Probe Workflow
+- **ProbeWorkflow**: Guided connection, observation capture (voltage, logic activity, controller mode)
+- **InferCapabilities**: Static method inferring safe operations from observed voltage and known chip pinouts
+- **6 unit tests** using MockRp2040Controller (no hardware needed)
 
 #### User Interface
 - **MainForm**: Windows Forms with all features integrated
 - **Voice Panel**: Hidden by default, appears when voice mode enabled
 - **Research Button**: Initiates research workflow
-- **RP2040 Button**: Connects and displays bridge info
-- **E-Waste Mode**: Checkbox for irreversible experiments (red when enabled)
+- **RP2040 Button**: Runs guided ProbeWorkflow with connection guidance, observations, capability inference
+- **Firmware Button**: Validates firmware artifacts (SHA-256, size, model)
+- **Fastboot Button**: Lists devices in fastboot mode via FastbootManager
+- **Recovery Workflow Button**: Runs 6-phase end-to-end recovery workflow
+- **E-Waste Mode**: Checkbox with visual indicator (red when enabled)
+- **Pinout Lookup Dialog**: Search and display chip pinouts from database
+- **Logic Analyzer Form**: Graphical waveform display for RP2040 logic capture
 
 ---
 
@@ -105,7 +145,7 @@ Known from user-provided ADB output:
    - Verify CI build passes
 
 2. **Complete Research Engine**
-   - Add more research sources (XDA Forums, Exploit-DB, local database)
+   - Add Exploit-DB research source
    - Implement offline fingerprinting (USB IDs, partitions, bootloader responses)
    - Add hypothesis testing logic
 
@@ -115,13 +155,15 @@ Known from user-provided ADB output:
    - Add voice feedback for all major operations
 
 4. **Implement RP2040 Hardware Communication**
-   - Serial port connection
-   - USB HID communication
+   - Serial port connection (SerialRp2040Controller)
+   - USB HID communication (UsbRp2040Controller)
    - Mode switching commands
    - Pin configuration
+   - Complete LogicCapture implementation
+   - Voltage measurement
 
 5. **Add Logic Analyzer Visualization**
-   - Signal waveform display
+   - Signal waveform display (partially implemented in LogicAnalyzerForm)
    - Protocol decoding (UART, SPI, I2C)
    - Timing analysis
 
@@ -129,7 +171,7 @@ Known from user-provided ADB output:
 
 ## Important Constraints (Still Apply)
 
-✅ **DO**:
+DO:
 - Keep read-only by default
 - Require explicit user confirmation for writes
 - Log all operations with evidence
@@ -137,7 +179,7 @@ Known from user-provided ADB output:
 - Use explicit `Unknown` state when uncertain
 - Escalate from safe to experimental methods
 
-❌ **DO NOT**:
+DO NOT:
 - Silently modify devices
 - Flash partitions without confirmation
 - Assume bootloader unlock paths exist
@@ -145,7 +187,7 @@ Known from user-provided ADB output:
 - Guess when evidence is insufficient
 - Perform destructive actions without explicit authorization
 
-⚠️ **Experimental Mode**:
+Experimental Mode:
 - Only enabled when user explicitly checks "E-Waste Mode"
 - Requires double confirmation for irreversible actions
 - Clearly warns about bricking risk
@@ -156,14 +198,14 @@ Known from user-provided ADB output:
 
 ## Long-Term Ideas (From User Requirements)
 
-### ✅ Now Implemented
+### Now Implemented
 - **Automatic online search**: GitHub search for exploits/datasheets
 - **Voice interaction**: Hands-free operation with speech recognition
 - **RP2040 universal programmer**: Interface abstraction with multiple modes
 - **E-Waste mode**: Explicit authorization for irreversible experiments
 - **Research engine**: Coordinates device investigation
 
-### 🎯 Next to Implement
+### Next to Implement
 - **Offline autonomous research**: When online search fails or is disabled
   - Protocol hypothesis generation
   - Signal analysis and pattern detection
@@ -175,12 +217,11 @@ Known from user-provided ADB output:
   - User confirmation before connecting
 
 - **Closed-loop automation**: "Plug in device, explain goal, it figures out how"
-  - Device identification → objective analysis → method selection → execution
+  - Device identification -> objective analysis -> method selection -> execution
   - Progressive escalation from safe to experimental methods
   - User approval gates at each risk level
 
 - **Online research expansion**:
-  - XDA Forums search
   - Exploit-DB integration
   - Local exploit database
   - Community-contributed knowledge
@@ -195,7 +236,7 @@ Known from user-provided ADB output:
 2. **Read `docs/IMPLEMENTATION_PROGRESS.md`** for detailed status
 3. **Read `ROADMAP.md`** for planned features
 4. **Read `ARCHITECTURE.md`** for design principles
-5. **Inspect the source tree** and recent commits in `feature/stabilize-foundation`
+5. **Inspect the source tree** and recent commits in `main`
 6. **Test current build** before making changes
 
 ### Implementation Status Tracking:
@@ -227,6 +268,7 @@ Known from user-provided ADB output:
 - [ ] Voice command parsing
 - [ ] Research session creation
 - [ ] GitHub search
+- [ ] XDA Forums search
 - [ ] RP2040 controller connection (mock)
 - [ ] E-Waste mode toggle
 
@@ -260,26 +302,26 @@ For **E-Waste Mode** (user accepts bricking):
 
 ```text
 OpenDeviceToolkit/
-├── src/
-│   ├── OpenDeviceToolkit.App/          # Windows UI
-│   ├── OpenDeviceToolkit.Core/         # Shared services, configuration
-│   │   ├── Research/                   # Research Engine components
-│   │   └── Speech/                     # Voice interaction
-│   ├── OpenDeviceToolkit.Android/      # ADB and Android-specific
-│   └── OpenDeviceToolkit.Hardware/     # Hardware bridge, RP2040
-│       └── Rp2040/                     # RP2040 controller and pinouts
-├── tests/
-│   └── OpenDeviceToolkit.Tests/        # Unit tests
-│       ├── Research/                   # Research Engine tests
-│       └── Speech/                     # Voice interaction tests
-├── .github/
-│   └── workflows/
-│       └── build.yml                   # CI configuration
-└── docs/
-    ├── IMPLEMENTATION_PROGRESS.md      # Detailed progress tracking
-    ├── ARCHITECTURE.md                  # Design principles
-    ├── ROADMAP.md                       # Feature roadmap
-    └── HANDOFF.md                       # This file
++--- src/
+|   +--- OpenDeviceToolkit.App/          # Windows UI
+|   +--- OpenDeviceToolkit.Core/         # Shared services, configuration
+|   |   +--- Research/                   # Research Engine components
+|   |   +--- Speech/                     # Voice interaction
+|   +--- OpenDeviceToolkit.Android/      # ADB and Android-specific
+|   +--- OpenDeviceToolkit.Hardware/     # Hardware bridge, RP2040
+|       +--- Rp2040/                     # RP2040 controller and pinouts
++--- tests/
+|   +--- OpenDeviceToolkit.Tests/        # Unit tests
+|       +--- Research/                   # Research Engine tests
+|       +--- Speech/                     # Voice interaction tests
++--- .github/
+|   +--- workflows/
+|       +--- build.yml                   # CI configuration
++--- docs/
+    +--- IMPLEMENTATION_PROGRESS.md      # Detailed progress tracking
+    +--- ARCHITECTURE.md                  # Design principles
+    +--- ROADMAP.md                       # Feature roadmap
+    +--- HANDOFF.md                       # This file
 ```
 
 ---

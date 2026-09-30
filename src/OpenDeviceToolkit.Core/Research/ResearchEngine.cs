@@ -17,6 +17,7 @@ public sealed class ResearchEngine : IDisposable
         _commandRunner = commandRunner;
         _sources.Add(new GitHubSearch(new HttpClient(), logger));
         _sources.Add(new XdaSearch(new HttpClient(), logger));
+        _sources.Add(new ExploitDbSearch(new HttpClient(), logger));
         _sources.Add(new OfflineResearcher(logger));
     }
     

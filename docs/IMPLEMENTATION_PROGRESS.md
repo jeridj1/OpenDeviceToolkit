@@ -1,12 +1,12 @@
 # Open Device Toolkit - Implementation Progress
 
-**Branch**: `feature/stabilize-foundation`  
-**Date**: August 14, 2026  
-**Status**: Active Development
+**Branch**: `main`  
+**Date**: October 2026  
+**Status**: Active Development - Feature/stabilize-foundation merged to main
 
 ---
 
-## ✅ Completed Features
+## Completed Features
 
 ### Core Infrastructure
 - [x] **Configurable Workspace** (`AppConfig.cs`, `Config.cs`)
@@ -31,7 +31,7 @@
   - Configurable log levels and retention
   - Error handling for logging failures
 
-### Research Engine (Milestone 0.6 - Partial)
+### Research Engine
 - [x] **Risk Level System** (`RiskLevel.cs`)
   - `ReadOnly`, `Reversible`, `PersistentWrite`, `PotentialBrick`, `EWasteMode`
   - Extension methods for descriptions, colors, and confirmation requirements
@@ -66,6 +66,16 @@
   - Ranks results by confidence (stars, recency)
   - Estimates risk level from file paths
 
+- [x] **XDA Forums Search Source** (`XdaSearch.cs`)
+  - Searches XDA Developers Forum for device-specific guides
+  - Extracts thread links from search results
+  - Confidence scoring based on relevance
+
+- [x] **Offline Researcher** (`OfflineResearcher.cs`)
+  - USB VID/PID-based fingerprinting when offline
+  - Hypothesis generation from device characteristics
+  - Falls back when online sources unavailable
+
 ### Voice Interaction
 - [x] **Speech Service** (`SpeechService.cs`)
   - Speech-to-Text using Windows.Speech
@@ -73,15 +83,30 @@
   - Configurable rate, volume, and confidence threshold
   - Event-based architecture for voice recognition
   
+- [x] **Voice Intent Detector** (`VoiceIntentDetector.cs`)
+  - 4-layer intent detection: keyword, fuzzy, context, free-form
+  - Handles wake words ("Hey ODT", "OK ODT")
+  - Natural language to structured commands
+  
 - [x] **Voice Command Parser** (`VoiceCommandParser.cs`)
   - Parses natural language into structured commands
-  - Supports: ScanDevice, GainAccess, GenerateReport, RebootDevice, Help, Exit
-  - Handles wake words ("Hey ODT", "OK ODT")
+  - Supports: ScanDevice, GainAccess, GenerateReport, RebootDevice, Help, Exit, CustomObjective
   - Extracts device identifiers and objectives
   
 - [x] **Voice Settings** (`VoiceConfig` in `AppConfig.cs`)
   - Enable/disable voice mode
   - Configure speech rate and volume
+  
+- [x] **Synonym Database** (`SynonymDatabase.cs`)
+  - 100+ synonyms for natural language understanding
+  - Customizable synonym mappings
+  
+- [x] **Clarification Dialog** (`ClarificationDialog.cs`)
+  - Asks "Did you mean?" when uncertain
+  - Presents alternatives for user selection
+  
+- [x] **Voice Context** (`VoiceContext`)
+  - Remembers device, objective, last action across conversations
 
 ### RP2040 Hardware Bridge
 - [x] **RP2040 Controller Interface** (`IRp2040Controller`)
@@ -93,7 +118,7 @@
   - Pin configuration
   
 - [x] **Mode Enumeration** (`Rp2040Mode`)
-  - All supported protocols defined
+  - All 10 supported protocols defined
   
 - [x] **Pin Configuration** (`Rp2040PinConfig`, `Rp2040PinMode`)
   - GPIO pin modes with pull-up/down options
@@ -103,169 +128,200 @@
   - Multi-pin capture support
   
 - [x] **Pinout Database** (`PinoutDatabase.cs`)
-  - Known chip pinouts (STM32F103, RP2040, etc.)
+  - 10+ known chip pinouts (STM32F103, RP2040, ESP32, ESP8266, ATmega328P, Snapdragon 855, nRF52840, SAMD21, STM32F407, CH32V003)
   - USB VID/PID matching
   - Programming interface definitions
   - Extensible database with JSON persistence
+  - Wiring instructions for known chips
   
 - [x] **Controller Implementations**
   - `MockRp2040Controller` - For testing without hardware
-  - `SerialRp2040Controller` - Serial port communication (stub)
-  - `UsbRp2040Controller` - USB communication (stub)
+  - `SerialRp2040Controller` - Serial port communication (stub - TODOs for actual implementation)
+  - `UsbRp2040Controller` - USB communication (stub - TODOs for actual implementation)
   - `Rp2040ControllerFactory` - Creates appropriate controller
 
-### User Interface Enhancements
-- [x] **Voice Mode Toggle**
-  - Enable/disable voice interaction
-  - Visual feedback for listening/speaking status
-  - Voice input panel with text entry fallback
+### Operation Guard & Safety
+- [x] **OperationGuard** (`OperationGuard.cs`)
+  - Centralized safety gate for all state-changing operations
+  - Validates target identification, readiness, explicit confirmation
   
-- [x] **Research Device Button**
-  - Initiates research workflow for connected device
-  - Displays search results and hypotheses
-  - Integrates with Research Engine
+- [x] **OperationRisk** (`OperationRisk.cs`)
+  - ReadOnly, StateChange, PersistentWrite classification
   
-- [x] **RP2040 Bridge Button**
-  - Connects to RP2040 hardware
-  - Displays available modes
-  - Shows known chip pinouts
+- [x] **PlannedOperation** (`PlannedOperation.cs`)
+  - Captures operation details, risk, readiness, preconditions
   
-- [x] **E-Waste Mode Checkbox**
-  - Visual indicator (red text) when enabled
-  - Allows irreversible experiments when checked
-  - Safety confirmation for high-risk operations
+- [x] **OperationBlockedException** (`OperationBlockedException.cs`)
+  - Thrown when safety preconditions unmet
+
+### Fastboot Support
+- [x] **FastbootManager** (`FastbootManager.cs`)
+  - Drives fastboot CLI via CommandRunner
+  - Pure static ParseDevices/ParseGetVar for testability
+  
+- [x] **FastbootOperationService** (`FastbootOperationService.cs`)
+  - getvar/oem (ReadOnly)
+  - reboot (StateChange)
+  - flash/erase (PersistentWrite)
+  - All operations gated by OperationGuard
+
+### Recovery Workflow
+- [x] **RecoveryWorkflow** (`RecoveryWorkflow.cs`)
+  - 6-phase orchestration: identify, detect, validate, backup, guarded operation, verify
+  
+- [x] **IRecoveryOperation** (`IRecoveryOperation.cs`)
+  - Injectable interface for mock-testable operations without live devices
+
+### Firmware Handling
+- [x] **FirmwareArtifactService** (`FirmwareArtifactService.cs`)
+  - Device-independent firmware acquisition, SHA-256 hashing, validation
+  
+- [x] **FirmwareArtifact** (`FirmwareArtifact.cs`)
+  - Artifact model with checksum, size, model match verification
+  
+- [x] **ValidationStatus** (`ValidationStatus.cs`)
+  - Verified, HashMismatch, SizeMismatch, ModelMismatch, Missing
+
+### Probe Workflow
+- [x] **ProbeWorkflow** (`ProbeWorkflow.cs`)
+  - Guided connection, observation capture (voltage, logic activity, controller mode)
+  
+- [x] **InferCapabilities** (`ProbeWorkflow.cs`)
+  - Static method inferring safe operations from observed voltage and known chip pinouts
+  
+- [x] **Probe Authorization** (`ProbeAuthorization.cs`)
+- [x] **Probe Evidence** (`ProbeEvidence.cs`)
+- [x] **Probe Execution Planner** (`ProbeExecutionPlanner.cs`)
+- [x] **Probe History** (`ProbeHistory.cs`)
+- [x] **Probe Modes** (`ProbeModes.cs`)
+- [x] **Probe Plan** (`ProbePlan.cs`)
+- [x] **Probe Report** (`ProbeReport.cs`)
+- [x] **Probe Safety** (`ProbeSafety.cs`)
+- [x] **Target Session** (`TargetSession.cs`)
+
+### User Interface
+- [x] **MainForm** (`MainForm.cs`)
+  - Enhanced with all new features integrated
+  - Voice toggle button
+  - Research button
+  - RP2040 bridge button
+  - Firmware validation button
+  - Fastboot button
+  - Recovery workflow button
+  - E-Waste mode checkbox
+  
+- [x] **Voice Panel**
+  - Hidden by default, appears when voice mode enabled
+  - Text input fallback
+  
+- [x] **Logic Analyzer Form** (`LogicAnalyzerForm.cs`)
+  - Graphical waveform display for RP2040 logic capture
+  - Multi-pin support with color-coded waveforms
+  - Configurable sample rate and duration
+
+- [x] **Pinout Lookup Dialog**
+  - Search and display chip pinouts from database
+
+### Android Provider
+- [x] **AdbManager** (`AdbManager.cs`)
+- [x] **AndroidBackupService** (`AndroidBackupService.cs`)
+- [x] **AndroidCapabilityAnalyzer** (`AndroidCapabilityAnalyzer.cs`)
+- [x] **AndroidCapabilityPlanner** (`AndroidCapabilityPlanner.cs`)
+- [x] **AndroidDevice** (`AndroidDevice.cs`)
+- [x] **AndroidDiagnosticReportWriter** (`AndroidDiagnosticReportWriter.cs`)
+- [x] **AndroidDiagnosticService** (`AndroidDiagnosticService.cs`)
+- [x] **AndroidFileService** (`AndroidFileService.cs`)
+- [x] **AndroidOperation** (`AndroidOperation.cs`)
+- [x] **AndroidPackageService** (`AndroidPackageService.cs`)
+- [x] **AndroidReportWriter** (`AndroidReportWriter.cs`)
+- [x] **AndroidSnapshotService** (`AndroidSnapshotService.cs`)
+
+### Tests
+- [x] **AdbManagerTests** - ADB discovery and parsing
+- [x] **AppConfigTests** - Configuration loading
+- [x] **EnhancedToolLocatorTests** - Tool discovery
+- [x] **FastbootManagerTests** - Fastboot operations
+- [x] **FirmwareArtifactServiceTests** - Firmware validation
+- [x] **OperationGuardTests** - Safety gate testing
+- [x] **PinoutDatabaseTests** - Pinout lookup and matching
+- [x] **ProbeWorkflowTests** - Probe workflow with mock controller
+- [x] **RecoveryWorkflowTests** - End-to-end recovery workflow
+- [x] **ResearchEngineTests** - Research engine components
+- [x] **SpeechServiceTests** - Voice command parsing
+- [x] **VoiceIntentDetectorTests** - Natural language intent detection
+- [x] **ToolLocatorTests** - Tool discovery
+- [x] **WorkspaceTests** - Workspace management
 
 ---
 
-## 📋 Current Branch State
-
-### Files Added/Modified
-
-#### Configuration
-- `src/OpenDeviceToolkit.Core/AppConfig.cs` - Enhanced with VoiceConfig, ResearchConfig
-- `src/OpenDeviceToolkit.Core/Config.cs` - Static access to configuration
-- `src/OpenDeviceToolkit.Core/Workspace.cs` - Uses Config.Current.Workspace
-- `src/OpenDeviceToolkit.Core/appsettings.json` - Default configuration with all settings
-
-#### Research Engine
-- `src/OpenDeviceToolkit.Core/Research/RiskLevel.cs` - Risk enumeration and extensions
-- `src/OpenDeviceToolkit.Core/Research/ResearchResult.cs` - Search result model
-- `src/OpenDeviceToolkit.Core/Research/ResearchHypothesis.cs` - Hypothesis model
-- `src/OpenDeviceToolkit.Core/Research/ResearchSession.cs` - Session management
-- `src/OpenDeviceToolkit.Core/Research/ResearchPlan.cs` - Workflow planning
-- `src/OpenDeviceToolkit.Core/Research/ResearchStep.cs` - Individual research step
-- `src/OpenDeviceToolkit.Core/Research/IResearchSource.cs` - Source interface
-- `src/OpenDeviceToolkit.Core/Research/ResearchSourceBase.cs` - Base class
-- `src/OpenDeviceToolkit.Core/Research/GitHubSearch.cs` - GitHub search implementation
-- `src/OpenDeviceToolkit.Core/Research/ResearchEngine.cs` - Main engine
-
-#### Speech/Voice
-- `src/OpenDeviceToolkit.Core/Speech/SpeechService.cs` - STT and TTS service
-- `src/OpenDeviceToolkit.Core/Speech/VoiceCommandParser.cs` - Command parsing
-- `src/OpenDeviceToolkit.Core/Speech/VoiceCommand.cs` - Command model
-- `src/OpenDeviceToolkit.Core/Speech/VoiceCommandType.cs` - Command types
-
-#### RP2040 Hardware
-- `src/OpenDeviceToolkit.Hardware/Rp2040/IRp2040Controller.cs` - Controller interface
-- `src/OpenDeviceToolkit.Hardware/Rp2040/Rp2040Mode.cs` - Mode enumeration
-- `src/OpenDeviceToolkit.Hardware/Rp2040/Rp2040PinConfig.cs` - Pin configuration
-- `src/OpenDeviceToolkit.Hardware/Rp2040/Rp2040PinMode.cs` - Pin mode enumeration
-- `src/OpenDeviceToolkit.Hardware/Rp2040/LogicCapture.cs` - Capture result
-- `src/OpenDeviceToolkit.Hardware/Rp2040/LogicSample.cs` - Sample model
-- `src/OpenDeviceToolkit.Hardware/Rp2040/Rp2040Info.cs` - Device info
-- `src/OpenDeviceToolkit.Hardware/Rp2040/Rp2040ControllerBase.cs` - Base implementation
-- `src/OpenDeviceToolkit.Hardware/Rp2040/Rp2040ControllerFactory.cs` - Factory
-- `src/OpenDeviceToolkit.Hardware/Rp2040/MockRp2040Controller.cs` - Mock for testing
-- `src/OpenDeviceToolkit.Hardware/Rp2040/SerialRp2040Controller.cs` - Serial implementation
-- `src/OpenDeviceToolkit.Hardware/Rp2040/UsbRp2040Controller.cs` - USB implementation
-- `src/OpenDeviceToolkit.Hardware/Rp2040/PinoutDatabase.cs` - Chip pinout database
-- `src/OpenDeviceToolkit.Hardware/Rp2040/ChipPinout.cs` - Chip model
-- `src/OpenDeviceToolkit.Hardware/Rp2040/PinInfo.cs` - Pin information
-- `src/OpenDeviceToolkit.Hardware/Rp2040/PinType.cs` - Pin type enumeration
-- `src/OpenDeviceToolkit.Hardware/Rp2040/ProgrammingInterface.cs` - Interface model
-
-#### Application
-- `src/OpenDeviceToolkit.App/MainForm.cs` - Enhanced with voice, research, RP2040 features
-
-#### Tests
-- `tests/OpenDeviceToolkit.Tests/Research/ResearchEngineTests.cs` - Research engine tests
-- `tests/OpenDeviceToolkit.Tests/Speech/SpeechServiceTests.cs` - Voice command parser tests
-- `tests/OpenDeviceToolkit.Tests/OpenDeviceToolkit.Tests.csproj` - Updated with Moq
-
-#### CI/CD
-- `.github/workflows/build.yml` - Updated for .NET 8 and all projects
-
-#### Project Files
-- `src/OpenDeviceToolkit.Core/OpenDeviceToolkit.Core.csproj` - Added System.Speech reference
-- `src/OpenDeviceToolkit.App/OpenDeviceToolkit.App.csproj` - Added System.Speech reference
-- `src/OpenDeviceToolkit.Android/OpenDeviceToolkit.Android.csproj` - Already targets net8.0
-- `src/OpenDeviceToolkit.Hardware/OpenDeviceToolkit.Hardware.csproj` - Updated to net8.0
-
----
-
-## 🎯 Next Steps (Priority Order)
+## Next Steps (Priority Order)
 
 ### High Priority (Core Functionality)
-1. **Test and verify all existing features still work**
-   - Run CI build and tests
-   - Test ADB discovery and device inspection
-   - Test environment diagnostics
-   
-2. **Complete Research Engine integration**
-   - Add more research sources (XDA Forums, Exploit-DB)
-   - Implement hypothesis testing logic
-   - Add offline fingerprinting capabilities
-   
+1. **Complete RP2040 Hardware Communication**
+   - [ ] Implement SerialRp2040Controller actual serial communication
+   - [ ] Implement UsbRp2040Controller actual USB HID communication
+   - [ ] Complete LogicCapture implementation with real data
+   - [ ] Implement voltage measurement
+   - [ ] Implement pin configuration
+   - [ ] Add mode switching commands
+
+2. **Complete Research Engine**
+   - [ ] Add Exploit-DB research source
+   - [ ] Implement offline fingerprinting (USB IDs, partitions, bootloader responses)
+   - [ ] Add hypothesis testing logic
+   - [ ] Add local exploit database
+
 3. **Enhance Voice Interaction**
-   - Add more command variations
-   - Improve natural language parsing
-   - Add voice feedback for all operations
+   - [ ] Add more command variations and synonyms
+   - [ ] Improve natural language parsing
+   - [ ] Add voice feedback for all major operations
 
 ### Medium Priority (User Experience)
-4. **Improve RP2040 Integration**
-   - Implement actual serial/USB communication
-   - Add pinout configuration UI
-   - Add logic analyzer visualization
-   
+4. **Improve Logic Analyzer Visualization**
+   - [ ] Protocol decoding (UART, SPI, I2C)
+   - [ ] Timing analysis
+   - [ ] Signal waveform display enhancements
+
 5. **Add More Exploit Sources**
-   - Local exploit database
-   - Community-contributed exploits
-   - CVE database integration
+   - [ ] Local exploit database
+   - [ ] Community-contributed exploits
+   - [ ] CVE database integration
 
 ### Low Priority (Future Enhancements)
 6. **Automated Workflows**
-   - Auto-detect → auto-research → auto-execute (with confirmations)
-   - Progress tracking across sessions
-   - Learning from past successes/failures
-   
+   - [ ] Auto-detect -> auto-research -> auto-execute (with confirmations)
+   - [ ] Progress tracking across sessions
+   - [ ] Learning from past successes/failures
+
 7. **Hardware Database**
-   - Crowd-sourced device information
-   - Known working exploits per device
-   - Community contributions
+   - [ ] Crowd-sourced device information
+   - [ ] Known working exploits per device
+   - [ ] Community contributions
 
 ---
 
-## 🔧 Technical Notes
+## Technical Notes
 
 ### Dependencies
-- **.NET 8.0** - All projects target .NET 8
-- **System.Speech** - For voice interaction (Windows only)
-- **System.Management** - For USB enumeration via WMI
-- **Moq** - For unit testing (test project only)
-- **xUnit** - Test framework
+- .NET 8.0 - All projects target .NET 8
+- System.Speech - For voice interaction (Windows only)
+- System.Management - For USB enumeration via WMI
+- Moq - For unit testing (test project only)
+- xUnit - Test framework
+- System.IO.Ports - For serial port communication
 
 ### Platform Support
-- **Primary**: Windows 10/11 (required for System.Speech)
-- **Future**: Linux/macOS (would need alternative speech libraries)
+- Primary: Windows 10/11 (required for System.Speech)
+- Future: Linux/macOS (would need alternative speech libraries)
 
 ### Build Status
-- [ ] CI build passing
-- [ ] All tests passing
-- [ ] Manual testing completed
+- [ ] CI build passing (needs verification)
+- [ ] All tests passing (needs verification)
+- [ ] Manual testing completed (needs verification)
 
 ---
 
-## 📝 Usage Examples
+## Usage Examples
 
 ### Voice Interaction
 ```
@@ -324,7 +380,7 @@ var capture = await controller.CaptureLogicAsync(
 
 ---
 
-## 🔒 Security & Privacy
+## Security & Privacy
 
 - All experimental features require explicit user confirmation
 - High-risk operations require double confirmation
@@ -334,4 +390,4 @@ var capture = await controller.CaptureLogicAsync(
 
 ---
 
-**Last Updated**: August 14, 2026
+**Last Updated**: October 2026
