@@ -2,7 +2,7 @@
 
 **Project Goal**: A Windows workbench for identifying, inspecting, documenting, diagnosing, backing up, programming, recovering, reverse-engineering, and repurposing electronic devices.
 
-**Current Focus**: Stabilizing foundation, completing Research Engine, implementing RP2040 hardware communication
+**Current Focus**: Stabilizing foundation, Research Engine complete, RP2040 hardware communication implemented
 
 ---
 
@@ -351,14 +351,13 @@ Future developers or AI agents should:
 
 ## Current Branch Status
 
-**Branch**: `main` 
-**Status**: 0.2 Alpha with full UI integration of recovery workflows, expanded pinout database, operation guard, firmware handling, fastboot support, research engine (GitHub/XDA/Offline), voice interaction, and RP2040 bridge interface
+**Branch**: `main`
+**Status**: 0.6 Research Engine complete with Exploit-DB, OfflineResearcher, Serial/USB RP2040 controllers, LogicAnalyzer visualization, Protocol decoding, PinoutDatabase with 10+ chip pinouts. Full UI integration of recovery workflows, operation guard, firmware handling, fastboot support, voice interaction, and RP2040 bridge.
 **Next**: 
-- Complete RP2040 hardware communication (Serial/USB)
-- Add Exploit-DB research source
-- Implement offline hypothesis testing
-- Add logic analyzer visualization
 - Expand test coverage
+- Move to 1.0 Stable Workbench milestone
+- Polish UI
+- Complete documentation
 
 ---
 
