@@ -18,6 +18,7 @@
     <ProjectReference Include="../../src/OpenDeviceToolkit.Core/OpenDeviceToolkit.Core.csproj" />
     <ProjectReference Include="../../src/OpenDeviceToolkit.Android/OpenDeviceToolkit.Android.csproj" />
     <ProjectReference Include="../../src/OpenDeviceToolkit.Hardware/OpenDeviceToolkit.Hardware.csproj" />
+    <ProjectReference Include="../../src/OpenDeviceToolkit.App/OpenDeviceToolkit.App.csproj" />
   </ItemGroup>
 
 </Project>
