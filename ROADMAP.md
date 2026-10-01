@@ -101,11 +101,12 @@ The repository is the authoritative project memory. Important requirements and d
 - [x] Unconventional/undocumented capability research (hypothesis system)
 
 **Remaining for 0.6**:
-- [ ] Exploit-DB research source integration
-- [ ] Offline hypothesis testing (without online search)
-- [ ] RP2040 actual hardware communication (serial/USB implementation)
-- [ ] Logic analyzer visualization and protocol decoding
-- [ ] Complete device-specific knowledge cards
+- [x] Exploit-DB research source integration
+- [x] Offline hypothesis testing (via OfflineResearcher)
+- [x] RP2040 actual hardware communication (serial/USB implementation)
+- [x] Logic analyzer visualization (LogicAnalyzerForm with waveform display)
+- [x] Protocol decoding (ProtocolDetector, UartAnalyzer, ProtocolDecoder)
+- [x] Complete device-specific knowledge cards (PinoutDatabase with 10+ chip pinouts)
 
 ### 1.0 - Stable Workbench [NOT STARTED]
 - [ ] Polished UI
