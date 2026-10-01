@@ -79,10 +79,10 @@ public sealed class MainForm : Form
         _logger.Info($"Workspace: {_workspace.Root}");
         _logger.Info($"OS: {RuntimeInformation.OSDescription}");
         _logger.Info($".NET: {Environment.Version}");
-        Text = "Open Device Toolkit 0.2 Alpha";
+        Text = "Open Device Toolkit 0.6";
         StartPosition = FormStartPosition.CenterScreen; MinimumSize = new Size(900, 600); Size = new Size(1200, 800); Font = new Font("Segoe UI", 10F);
         var title = new Label { Text = "Open Device Toolkit", Font = new Font("Segoe UI", 20F, FontStyle.Bold), AutoSize = true, Location = new Point(24, 18) };
-        var subtitle = new Label { Text = "Device reconnaissance + controlled operations + natural voice", AutoSize = true, Location = new Point(27, 58) };
+        var subtitle = new Label { Text = "Hardware Research Workbench - v0.6", AutoSize = true, Location = new Point(27, 58) };
         _scanButton.Text = "Detect Device"; _scanButton.AutoSize = true; _scanButton.Location = new Point(24, 95); _scanButton.Click += async (_, _) => await ScanAsync();
         var reportButton = new Button { Text = "Generate Report", AutoSize = true, Location = new Point(150, 95) }; reportButton.Click += (_, _) => GenerateReport();
         var workspaceButton = new Button { Text = "Open Workspace", AutoSize = true, Location = new Point(295, 95) }; workspaceButton.Click += (_, _) => OpenWorkspace();
