@@ -6,11 +6,14 @@
     <Nullable>enable</Nullable>
     <WarningsAsErrors>true</WarningsAsErrors>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Company>OpenDeviceToolkit</Company>
+    <Copyright>Copyright © 2026</Copyright>
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.IO.Ports" Version="10.0.12" />
-    <PackageReference Include="System.Management" Version="10.0.12" />
+    <PackageReference Include="System.IO.Ports" Version="10.0.11" />
+    <PackageReference Include="System.Management" Version="10.0.11" />
   </ItemGroup>
 
   <!-- The repository contains two generations of the hardware API. The split RP2040
