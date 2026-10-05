@@ -2,6 +2,8 @@ using OpenDeviceToolkit.Hardware.Rp2040;
 
 namespace OpenDeviceToolkit.Hardware;
 
+using ChipPinout = OpenDeviceToolkit.Hardware.Rp2040.ChipPinout;
+
 public sealed record ProbeWorkflowObservation(string Name, string Value, bool Success);
 public sealed record ProbeWorkflowCapability(string Name, string Evidence, bool Available);
 
