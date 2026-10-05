@@ -48,30 +48,45 @@ public sealed class AndroidSlotAnalyzer
 
         var suffix = Get(properties, SlotSuffixProperty).Trim();
         if (suffix.Length > 0)
-            evidence.Add($"{SlotSuffixPrope
-rty}={suffix}");
+        {
+            evidence.Add(SlotSuffixProperty + "=" + suffix);
+        }
 
         var hasSlotA = false;
         var hasSlotB = false;
         if (!string.IsNullOrWhiteSpace(byNameListing))
         {
-            foreach (var rawToken in byNameListing.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            var separators = new[] { ' ', '	', '', '
+' };
+            foreach (var rawToken in byNameListing.Split(separators, StringSplitOptions.RemoveEmptyEntries))
             {
                 var token = rawToken;
                 var arrow = token.IndexOf("->", StringComparison.Ordinal);
                 if (arrow >= 0)
+                {
                     token = token[..arrow];
+                }
+
                 token = token.Trim('/');
                 if (token.EndsWith("_a", StringComparison.Ordinal))
+                {
                     hasSlotA = true;
+                }
                 else if (token.EndsWith("_b", StringComparison.Ordinal))
+                {
                     hasSlotB = true;
+                }
             }
 
             if (hasSlotA)
+            {
                 evidence.Add("Slot-suffixed partitions ending in _a observed in /dev/block/by-name.");
+            }
+
             if (hasSlotB)
+            {
                 evidence.Add("Slot-suffixed partitions ending in _b observed in /dev/block/by-name.");
+            }
         }
 
         var activeSlot = string.Empty;
@@ -86,11 +101,11 @@ rty}={suffix}");
             if (slot is "a" or "b")
             {
                 activeSlot = slot;
-                findings.Add($"Observed slot suffix '{suffix}' identifies the active slot as '{activeSlot}'.");
+                findings.Add("Observed slot suffix '" + suffix + "' identifies the active slot as '" + activeSlot + "'.");
             }
             else
             {
-                findings.Add($"Observed slot suffix '{suffix}' is not a recognized A/B suffix; the active slot is Unknown.");
+                findings.Add("Observed slot suffix '" + suffix + "' is not a recognized A/B suffix; the active slot is Unknown.");
             }
         }
 
@@ -98,10 +113,9 @@ rty}={suffix}");
         if (capable)
         {
             var basis = activeSlot.Length > 0
-                ? $"slot suffix evidence ({SlotSuffixProperty})"
- 
-               : "observed slot-suffixed partitions for both slots";
-            findings.Add($"Device is A/B (seamless update) capable based on {basis}.");
+                ? "slot suffix evidence (" + SlotSuffixProperty + ")"
+                : "observed slot-suffixed partitions for both slots";
+            findings.Add("Device is A/B (seamless update) capable based on " + basis + ".");
         }
         else
         {
@@ -112,7 +126,9 @@ rty}={suffix}");
         if (activeSlot.Length == 0)
         {
             if (hasSlotA && hasSlotB)
+            {
                 findings.Add("Both slot partition sets are present, so a second slot likely exists, but the active slot is Unknown; the fallback slot is Unknown.");
+            }
         }
         else
         {
@@ -121,7 +137,7 @@ rty}={suffix}");
             if (candidateObserved)
             {
                 fallbackSlot = candidate;
-                findings.Add($"Partitions for slot '{fallbackSlot}' are present; it is the fallback (inactive) slot.");
+                findings.Add("Partitions for slot '" + fallbackSlot + "' are present; it is the fallback (inactive) slot.");
             }
             else
             {
@@ -133,10 +149,15 @@ rty}={suffix}");
         var virtualAbEnabled = virtualAbRaw is "1" or "true";
         if (virtualAbRaw.Length > 0)
         {
-            evidence.Add($"{VirtualAbProperty}={virtualAbRaw}");
-            findings.Add(virtualAbEnabled
-                ? "Virtual A/B is reported as enabled."
-                : "Virtual A/B is reported as not enabled.");
+            evidence.Add(VirtualAbProperty + "=" + virtualAbRaw);
+            if (virtualAbEnabled)
+            {
+                findings.Add("Virtual A/B is reported as enabled.");
+            }
+            else
+            {
+                findings.Add("Virtual A/B is reported as not enabled.");
+            }
         }
 
         return new AndroidSlotReport(capable, activeSlot, fallbackSlot, suffix, virtualAbEnabled, findings, evidence);
@@ -146,19 +167,23 @@ rty}={suffix}");
     /// Collects slot evidence from a connected device using read-only adb shell commands
     /// and returns the structured analysis. Never performs a state-changing operation.
     /// </summary>
-    public static async Task<AndroidSlo
-tReport> AnalyzeDeviceAsync(
+    public static async Task<AndroidSlotReport> AnalyzeDeviceAsync(
         AdbManager adb,
         string serial,
         CancellationToken cancellationToken = default)
     {
         if (adb is null)
+        {
             throw new ArgumentNullException(nameof(adb));
-        if (string.IsNullOrWhiteSpace(serial))
-            throw new ArgumentException("A device serial is required.", nameof(serial));
+        }
 
-        var suffixResult = await adb.RunShellAsync(serial, $"getprop {SlotSuffixProperty}", cancellationToken);
-        var virtualAbResult = await adb.RunShellAsync(serial, $"getprop {VirtualAbProperty}", cancellationToken);
+        if (string.IsNullOrWhiteSpace(serial))
+        {
+            throw new ArgumentException("A device serial is required.", nameof(serial));
+        }
+
+        var suffixResult = await adb.RunShellAsync(serial, "getprop " + SlotSuffixProperty, cancellationToken);
+        var virtualAbResult = await adb.RunShellAsync(serial, "getprop " + VirtualAbProperty, cancellationToken);
         var listingResult = await adb.RunShellAsync(serial, ByNameListingCommand, cancellationToken);
 
         var properties = new Dictionary<string, string>
