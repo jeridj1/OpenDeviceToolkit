@@ -4,6 +4,23 @@ All notable changes to Open Device Toolkit are documented here.
 
 ## Unreleased
 
+### Fixed
+
+#### Hardware project cleanup
+- Removed duplicate/conflicting RP2040Controller.cs from Rp2040/ subdirectory that caused type conflicts with the split architecture.
+- Removed 21 deprecated/unused files from Hardware project:
+  - Rp2040BridgeClient.cs, Rp2040BridgeProtocol.cs, Rp2040BridgeMessages.cs
+  - Rp2040CaptureClient.cs, Rp2040CaptureParser.cs
+  - LogicCaptureAnalyzer.cs (conflicting LogicCapture definition)
+  - ProbeAuthorization.cs, ProbeSafety.cs, ProbeExecutionPlanner.cs
+  - ProbeModes.cs, ProbeHistory.cs, ProbeEvidence.cs
+  - ProbeReport.cs, ProtocolDecoder.cs, ProtocolDetection.cs
+  - TargetSession.cs, UartAnalyzer.cs, UartAnalysis.cs
+- Removed Compile Remove entries from Hardware.csproj as files are now deleted.
+- Added using aliases in ProbeWorkflow.cs and ProbeWorkflowTests.cs to resolve type references across namespaces.
+
+## [0.6.0] - October 2026
+
 ### Added
 
 #### Operation guard and safety infrastructure
