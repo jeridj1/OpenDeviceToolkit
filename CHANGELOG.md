@@ -6,6 +6,11 @@ All notable changes to Open Device Toolkit are documented here.
 
 ### Added
 
+#### A/B slot analysis
+- AndroidSlotAnalyzer: structured, evidence-backed parsing of A/B (seamless update) slot state from read-only evidence (ro.boot.slot_suffix, ro.virtual_ab.enabled, /dev/block/by-name listing).
+- AndroidSlotReport: active/fallback slot determination with explicit Unknown when evidence is insufficient, Virtual A/B detection, and per-finding evidence lines.
+- 10 unit tests covering the documented LM-V450 evidence shape, missing evidence, invalid suffixes, Virtual A/B, and ls-style listing parsing. (#53)
+
 #### Operation guard and safety infrastructure
 - OperationGuard.Require: centralized safety gate validating target identification, readiness, and explicit confirmation before any non-read-only operation.
 - OperationRisk classification (ReadOnly, StateChange, PersistentWrite) distinguishing reboots from persistent writes.
@@ -34,7 +39,8 @@ All notable changes to Open Device Toolkit are documented here.
 - OperationRisk.StateChange added to distinguish reboots from persistent writes.
 
 #### UI integration
-- RP2040 Bridge button now runs the guided ProbeWorkflow with connection guidance, observations, and capability inference.
+- RP2040 Bridge button now runs the guided
+ ProbeWorkflow with connection guidance, observations, and capability inference.
 - New Validate Firmware button for SHA-256 checksum and artifact validation.
 - New Fastboot button for listing devices in fastboot mode via FastbootManager.
 - New Recovery Workflow button running the 6-phase end-to-end recovery workflow with phase-by-phase status display.

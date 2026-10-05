@@ -47,7 +47,8 @@ The repository is the authoritative project memory. Important requirements and d
 
 ### 0.3 - Android/LG Research Workbench [PARTIALLY COMPLETE]
 - [x] Read-only boot/USB state probes
-- [x] Read-only named partition inspection
+- [x] Read-only named partit
+ion inspection
 - [x] Read-only kernel partition table inspection
 - [x] Read-only filesystem space inspection
 - [x] Evidence-backed capability analysis
@@ -56,7 +57,7 @@ The repository is the authoritative project memory. Important requirements and d
 - [x] Explicit ADB file pull/push service
 - [x] Controlled APK installation service
 - [ ] Partition map inspection and structured parsing
-- [ ] A/B slot analysis (partial)
+- [x] A/B slot analysis (structured, evidence-backed; AndroidSlotAnalyzer + AndroidSlotReport)
 - [ ] Boot-chain analysis (stubbed)
 - [ ] LG Download Mode detection (stubbed)
 - [ ] Qualcomm 9008 detection (stubbed)
@@ -94,7 +95,8 @@ The repository is the authoritative project memory. Important requirements and d
 - [x] Voice Interaction: Hands-free operation with speech recognition (System.Speech)
 - [x] GitHub Search: Online exploit/datasheet/code search with confidence scoring
 - [x] XDA Forums Search: Online forum search for device-specific guides
-- [x] Offline Researcher: USB VID/PID-based fingerprinting when offline
+- [x] Off
+line Researcher: USB VID/PID-based fingerprinting when offline
 - [x] RP2040 multifunction research instrument integration (interface + mock implementation)
 - [x] UART/SPI/I2C/JTAG/SWD research workflows (mode definitions)
 - [x] Device-specific research plans and knowledge cards (pinout database)
@@ -136,7 +138,8 @@ The repository is the authoritative project memory. Important requirements and d
 - **Device Inspection**: Reads all properties via `adb shell getprop`
 - **Environment Diagnostics**: Checks ADB, Fastboot, .NET, workspace, USB
 - **Deep Read-Only Scan**: Boot, USB, partition, filesystem diagnostics
-- **Capability Analysis**: Determines available operations with evidence
+- **Capability Analysis**: Determines available operations with ev
+idence
 - **Operation Planning**: Generates workflows with risk assessment
 
 #### Research Engine
@@ -171,7 +174,8 @@ The repository is the authoritative project memory. Important requirements and d
 - **SerialRp2040Controller**: Serial port (stub - TODOs for actual implementation)
 - **UsbRp2040Controller**: USB (stub - TODOs for actual implementation)
 - **Rp2040ControllerFactory**: Automatic controller selection
-- **PinoutDatabase**: 10+ known chips (STM32F103, RP2040, nRF52840, SAMD21, STM32F407, ESP8266, CH32V003, ESP32, ATmega328P, Snapdragon 855)
+- **PinoutDatabase**: 10+ known chips (STM32F103, RP2040, nRF52840, SAMD21, STM32F407, ESP8266, CH32V003, ESP32, A
+Tmega328P, Snapdragon 855)
 - **ChipPinout, PinInfo, PinType**: Chip and pin models
 - **ProgrammingInterface**: Protocol interface definitions
 - **LogicCapture, LogicSample**: Signal capture models
@@ -208,7 +212,8 @@ The repository is the authoritative project memory. Important requirements and d
 - **MainForm**: Enhanced with all features integrated
 - **Voice Toggle**: Enable/disable voice mode
 - **Research Button**: Initiates research workflow
-- **RP2040 Button**: Runs guided ProbeWorkflow with observations and capability inference
+- **RP2040 Button**: Runs gui
+ded ProbeWorkflow with observations and capability inference
 - **Firmware Button**: Validates firmware artifacts (SHA-256, size, model)
 - **Fastboot Button**: Lists devices in fastboot mode
 - **Recovery Workflow Button**: Runs 6-phase end-to-end recovery workflow
@@ -262,7 +267,8 @@ A structured workflow exposes:
 - Planned operations
 - Risk level
 - Authorization state
-- Recovery/backup information
+- 
+Recovery/backup information
 - Execution results
 - Post-operation verification
 - Recommended next step
@@ -326,7 +332,8 @@ It should be capable of discovering useful programming, debugging, recovery, con
 
 **E-Waste Mode**: For disposable or already-failed devices, the operator may explicitly authorize an experimental risk envelope that allows the research engine to continue into potentially irreversible experiments. ODT must:
 1. Make the possibility of permanent damage unmistakable
-2. Obtain explicit confirmation (preferably twice for irreversible operations)
+2. Obtain explicit confirmation (preferably twice for irrev
+ersible operations)
 3. Record what was authorized and what it attempted
 
 ---
