@@ -48,7 +48,8 @@ public sealed class AndroidSlotAnalyzer
 
         var suffix = Get(properties, SlotSuffixProperty).Trim();
         if (suffix.Length > 0)
-            evidence.Add($"{SlotSuffixProperty}={suffix}");
+            evidence.Add($"{SlotSuffixPrope
+rty}={suffix}");
 
         var hasSlotA = false;
         var hasSlotB = false;
@@ -80,7 +81,7 @@ public sealed class AndroidSlotAnalyzer
         }
         else
         {
-            var normalized = suffix.StartsWith('_', StringComparison.Ordinal) ? suffix : "_" + suffix;
+            var normalized = suffix.StartsWith("_", StringComparison.Ordinal) ? suffix : "_" + suffix;
             var slot = normalized.TrimStart('_').ToLowerInvariant();
             if (slot is "a" or "b")
             {
@@ -98,7 +99,8 @@ public sealed class AndroidSlotAnalyzer
         {
             var basis = activeSlot.Length > 0
                 ? $"slot suffix evidence ({SlotSuffixProperty})"
-                : "observed slot-suffixed partitions for both slots";
+ 
+               : "observed slot-suffixed partitions for both slots";
             findings.Add($"Device is A/B (seamless update) capable based on {basis}.");
         }
         else
@@ -144,7 +146,8 @@ public sealed class AndroidSlotAnalyzer
     /// Collects slot evidence from a connected device using read-only adb shell commands
     /// and returns the structured analysis. Never performs a state-changing operation.
     /// </summary>
-    public static async Task<AndroidSlotReport> AnalyzeDeviceAsync(
+    public static async Task<AndroidSlo
+tReport> AnalyzeDeviceAsync(
         AdbManager adb,
         string serial,
         CancellationToken cancellationToken = default)
