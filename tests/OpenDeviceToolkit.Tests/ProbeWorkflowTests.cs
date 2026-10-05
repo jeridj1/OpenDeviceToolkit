@@ -3,6 +3,8 @@ using OpenDeviceToolkit.Hardware.Rp2040;
 
 namespace OpenDeviceToolkit.Tests;
 
+using ProbeTarget = OpenDeviceToolkit.Hardware.ProbeTarget;
+
 public sealed class ProbeWorkflowTests
 {
     [Fact]
