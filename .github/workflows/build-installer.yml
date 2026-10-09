@@ -1,0 +1,320 @@
+name: Build Windows Installer
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'OpenDeviceToolkit.sln'
+      - '.github/workflows/build-installer.yml'
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish as GitHub Release'
+        required: false
+        default: 'false'
+      version:
+        description: 'Version number for release'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    name: Build Windows Installer
+    runs-on: windows-2022
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET 8 SDK
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+    
+    - name: Restore NuGet packages
+      run: dotnet restore
+    
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore
+    
+    - name: Run tests
+      run: dotnet test --configuration Release --no-build --verbosity normal
+    
+    - name: Publish as self-contained single file
+      run: |
+        dotnet publish src/OpenDeviceToolkit.App/OpenDeviceToolkit.App.csproj \
+          --configuration Release \
+          --runtime win-x64 \
+          --self-contained true \
+          --no-build \
+          /p:PublishSingleFile=true \
+          /p:PublishTrimmed=true \
+          /p:Version=0.6.0 \
+          /p:FileVersion=0.6.0.0 \
+          /p:AssemblyVersion=0.6.0.0 \
+          --output ./publish
+    
+    - name: Create installer package
+      run: |
+        # Create output directory
+        mkdir -p installer
+        
+        # Copy published app
+        cp -r ./publish/* ./installer/
+        
+        # Add firmware directory
+        mkdir -p ./installer/RP2040-Firmware
+        cp -r ./firmware/rp2040-bridge/* ./installer/RP2040-Firmware/
+        
+        # Create documentation
+        mkdir -p ./installer/Documentation
+        
+        # Create README.txt
+        @"
+Open Device Toolkit v0.6 - Windows Installer
+==============================================
+
+QUICK START:
+-----------
+1. Run: OpenDeviceToolkit.App.exe
+2. Or double-click: install.bat (for installation with shortcuts)
+
+REQUIREMENTS:
+------------
+- Windows 10 or 11 (64-bit)
+- .NET 8 Runtime (included - self-contained)
+
+FEATURES:
+---------
+✓ Natural language voice interaction
+✓ Android device discovery (ADB/Fastboot)
+✓ RP2040 hardware bridge control
+✓ Guided probe workflow
+✓ Logic analyzer with waveform display
+✓ Research engine (GitHub, XDA, offline)
+✓ Pinout database (10+ chips)
+✓ Firmware validation
+✓ Recovery workflows
+✓ E-Waste Mode for experimental research
+
+RP2040 FIRMWARE:
+---------------
+To use hardware features, flash your RP2040:
+1. Navigate to: RP2040-Firmware/
+2. See: README.md for flashing instructions
+
+SUPPORT:
+--------
+GitHub: https://github.com/jeridj1/OpenDeviceToolkit
+        "@ | Out-File -Encoding ASCII ./installer/Documentation/README.txt
+        
+        # Create install.bat
+        @"
+@echo off
+setlocal
+
+echo Open Device Toolkit v0.6 - Installer
+echo =====================================
+echo.
+
+set SOURCE_DIR=%~dp0
+set INSTALL_DIR=C:\Program Files\OpenDeviceToolkit
+
+if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
+
+xcopy /E /Y /Q "%SOURCE_DIR%*" "%INSTALL_DIR%\" >nul
+
+:: Create Start Menu shortcut
+set SHORTCUT_DIR=%APPDATA%\Microsoft\Windows\Start Menu\Programs\OpenDeviceToolkit
+if not exist "%SHORTCUT_DIR%" mkdir "%SHORTCUT_DIR%"
+
+(echo Set oWS = WScript.CreateObject("WScript.Shell")
+echo sLinkFile = "%SHORTCUT_DIR%\Open Device Toolkit.lnk"
+echo Set oLink = oWS.CreateShortcut(sLinkFile)
+echo oLink.TargetPath = "%INSTALL_DIR%\OpenDeviceToolkit.App.exe"
+echo oLink.WorkingDirectory = "%INSTALL_DIR%"
+echo oLink.Description = "Open Device Toolkit - Hardware Research Workbench"
+echo oLink.IconLocation = "%INSTALL_DIR%\OpenDeviceToolkit.App.exe,0"
+echo oLink.Save) > "%TEMP%\create_shortcut.vbs"
+
+cscript //nologo "%TEMP%\create_shortcut.vbs"
+del "%TEMP%\create_shortcut.vbs" >nul 2>&1
+
+:: Create Desktop shortcut
+(echo Set oWS = WScript.CreateObject("WScript.Shell")
+echo sLinkFile = oWS.SpecialFolders("Desktop") ^& "\Open Device Toolkit.lnk"
+echo Set oLink = oWS.CreateShortcut(sLinkFile)
+echo oLink.TargetPath = "%INSTALL_DIR%\OpenDeviceToolkit.App.exe"
+echo oLink.WorkingDirectory = "%INSTALL_DIR%"
+echo oLink.Description = "Open Device Toolkit - Hardware Research Workbench"
+echo oLink.IconLocation = "%INSTALL_DIR%\OpenDeviceToolkit.App.exe,0"
+echo oLink.Save) > "%TEMP%\create_desktop_shortcut.vbs"
+
+cscript //nologo "%TEMP%\create_desktop_shortcut.vbs"
+del "%TEMP%\create_desktop_shortcut.vbs" >nul 2>&1
+
+echo.
+echo Installation Complete!
+echo Open Device Toolkit is now installed at:
+echo   %INSTALL_DIR%
+echo.
+echo You can start it from the Start Menu or Desktop.
+echo.
+pause
+        "@ | Out-File -Encoding ASCII ./installer/install.bat
+        
+        # Create uninstall.bat
+        @"
+@echo off
+setlocal
+
+echo Open Device Toolkit - Uninstaller
+echo ==============================
+echo.
+
+:: Remove Start Menu shortcut
+set SHORTCUT_DIR=%APPDATA%\Microsoft\Windows\Start Menu\Programs\OpenDeviceToolkit
+if exist "%SHORTCUT_DIR%" (
+    del "%SHORTCUT_DIR%\*.*" /q >nul 2>&1
+    rmdir "%SHORTCUT_DIR%" /q >nul 2>&1
+    echo Removed Start Menu shortcut
+)
+
+:: Remove Desktop shortcut
+set DESKTOP_LINK=%USERPROFILE%\Desktop\Open Device Toolkit.lnk
+if exist "%DESKTOP_LINK%" (
+    del "%DESKTOP_LINK%" /q >nul 2>&1
+    echo Removed Desktop shortcut
+)
+
+echo.
+echo Note: The application files are NOT automatically deleted.
+echo To completely remove Open Device Toolkit, delete:
+echo   C:\Program Files\OpenDeviceToolkit
+
+echo.
+pause
+        "@ | Out-File -Encoding ASCII ./installer/uninstall.bat
+        
+        # Create FLASHING_GUIDE.txt for firmware
+        @"
+RP2040 FIRMWARE - QUICK FLASHING GUIDE
+========================================
+
+To flash your Raspberry Pi Pico:
+
+1. Hold the BOOTSEL button on your Pico
+2. Plug into USB
+3. Release BOOTSEL (RPI-RP2 drive appears)
+4. Build the firmware (see below)
+5. Drag and drop the .uf2 file onto RPI-RP2 drive
+
+BUILDING FIRMWARE:
+------------------
+Requirements:
+- Pico SDK: https://github.com/raspberrypi/pico-sdk
+- ARM Toolchain: https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads
+- CMake: https://cmake.org/download/
+
+Steps:
+1. Set environment variables:
+   PICO_SDK_PATH=C:\path\to\pico-sdk
+   PICO_TOOLCHAIN_PATH=C:\path\to\arm-none-eabi-bin
+
+2. Navigate to RP2040-Firmware directory
+3. Run: build-firmware.ps1
+4. This creates: odt_rp2040_bridge.uf2
+5. Flash using drag-and-drop method above
+
+SUPPORTED COMMANDS:
+-------------------
+- HELLO           : Identify the bridge
+- SAFE            : Set all GPIO to high-impedance
+- VOLTAGE         : Measure voltage on ADC pin
+- SNIFF pin,...   : Configure pins as inputs
+- CAPTURE pin rate count: Capture logic data
+
+IMPORTANT:
+----------
+RP2040 GPIO is NOT 5V tolerant!
+Always check voltage levels before connecting.
+Use level shifters if target is 5V.
+        "@ | Out-File -Encoding ASCII ./installer/RP2040-Firmware/FLASHING_GUIDE.txt
+        
+        # Create a simple run.bat for portable use
+        @"
+@echo off
+OpenDeviceToolkit.App.exe
+        "@ | Out-File -Encoding ASCII ./installer/run.bat
+    
+    - name: Create ZIP archive
+      run: |
+        # Compress the installer directory
+        Compress-Archive -Path ./installer/* -DestinationPath ./OpenDeviceToolkit-0.6-Windows-x64.zip -CompressionLevel Optimal
+        
+        # Also create a 7z archive for better compression
+        # Check if 7z is available
+        if (Get-Command 7z -ErrorAction SilentlyContinue) {
+          7z a -tzip -mx=9 ./OpenDeviceToolkit-0.6-Windows-x64.zip ./installer/ -xr!*.zip
+        }
+    
+    - name: Upload installer as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: OpenDeviceToolkit-Windows-Installer
+        path: |
+          OpenDeviceToolkit-0.6-Windows-x64.zip
+          installer/
+        retention-days: 30
+    
+    - name: Create GitHub Release (on demand)
+      if: inputs.publish_release == 'true'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ inputs.version || '0.6.0' }}
+        name: Open Device Toolkit v${{ inputs.version || '0.6.0' }} - Windows
+        body: |
+          ## What's New
+          
+          ### Windows Installer
+          - Self-contained single-file .NET 8 application
+          - No .NET SDK required - runtime included
+          - Ready to run on Windows 10/11 (64-bit)
+          
+          ### Features
+          - Natural language voice interaction
+          - Android device discovery (ADB/Fastboot)
+          - RP2040 hardware bridge control
+          - Guided probe workflow
+          - Logic analyzer with waveform display
+          - Research engine (GitHub, XDA, offline)
+          - Pinout database (10+ chips)
+          - Firmware validation
+          - Recovery workflows
+          - E-Waste Mode for experimental research
+          
+          ### Installation
+          1. Download the ZIP file
+          2. Extract to any location
+          3. Run: OpenDeviceToolkit.App.exe
+          4. Or run: install.bat (for Start Menu/Desktop shortcuts)
+          
+          ### For RP2040 Hardware
+          - Firmware source included in RP2040-Firmware/ directory
+          - See FLASHING_GUIDE.txt for instructions
+          - Requires Raspberry Pi Pico or compatible RP2040 board
+          
+          ### For Tesla Neurio W2-tesla
+          - Connect RP2040 to unmarked jumper pads
+          - Run ODT and click "RP2040 Bridge"
+          - Follow guided workflow to explore device
+          - Enable E-Waste Mode for experimental operations
+        files: |
+          OpenDeviceToolkit-0.6-Windows-x64.zip
+        draft: false
+        prerelease: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
