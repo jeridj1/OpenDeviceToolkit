@@ -42,6 +42,17 @@ Converts a user objective into a structured workflow or research plan. Future na
 ### Core
 Provides shared abstractions and services such as device models, capabilities, workflows, experiment records, logging, command execution, configuration, workspace paths, hashing, evidence, and reports.
 
+### AI assist router
+
+The AI assist router is a single component that turns an operator objective plus captured evidence into structured, advisory recommendations. It talks to pluggable providers - a local Ollama runtime or bring-your-own-key OpenAI-compatible endpoints such as Mistral, OpenAI, and OpenRouter - and tries them in the configured priority order with fallback.
+
+Design rules:
+
+- No scraping of free web AI tiers. Providers are official endpoints or a local runtime, and the operator supplies their own credentials.
+- Model output is untrusted data. Responses must parse into the strict recommendation schema; anything unrecognized is treated as malformed and preserved raw for audit.
+- The router never executes anything. It returns proposals with a risk classification, and proposals above the operator's authorized envelope are marked blocked.
+- The App layer must translate approved proposals into real operations through the existing workflow and OperationGuard machinery. No AI-generated text ever reaches hardware directly.
+
 ### Providers and instruments
 A provider knows how to communicate with a device family or transport. An instrument/bridge provides physical access to electronics. Providers and instruments should be composable so the application is not locked to one programmer or one bridge board.
 
@@ -129,3 +140,5 @@ The planned desktop implementation is C#/.NET eight with a Windows desktop UI an
 ODT may eventually interact with firmware, bootloaders, recovery environments, debug interfaces, and low-level hardware. Persistent or destructive operations must be explicit capabilities rather than unrestricted arbitrary command execution exposed through normal UI workflows.
 
 For unknown hardware, the operator may explicitly authorize an experimental risk envelope that can include permanent device damage. The application must clearly state that risk and obtain deliberate confirmation, preferably twice for irreversible operations. After authorization, ODT may perform the configured research steps within that envelope and must preserve a complete record of what it attempted and learned.
+
+AI recommendations are advisory data, not instructions. They carry no execution authority of their own: approved recommendations must pass the same target identification, readiness checks, risk disclosure, and explicit confirmation as any human-initiated operation, and the operator's authorized risk envelope caps what may even be proposed for approval.

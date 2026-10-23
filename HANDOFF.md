@@ -2,7 +2,7 @@
 
 **Last Updated**: October 2026  
 **Branch**: `main`  
-**Status**: Active Development - Major Features Implemented (0.2 Alpha + Partial 0.6)
+**Status**: Active Development - AI Assist Router and Dark Dashboard Added (0.6 Features + 0.7 In Progress)
 
 ---
 
@@ -112,6 +112,23 @@
 
 ---
 
+#### AI Assist Router (Core.Ai)
+- **AiRouter**: single analysis entry point (AnalyzeAsync) with provider priority fallback, built from AppConfig.Ai.ProviderPriority
+- **Providers**: IAiProvider abstraction; OllamaProvider (local, no key, default http://localhost:11434) and OpenAiCompatibleProvider (BYO-key chat completions for Mistral, OpenAI, OpenRouter)
+- **Validation**: AiPrompts builds safety-first prompts with a strict JSON schema; ParseRecommendation rejects unknown modes and risk levels as Malformed and preserves the raw response
+- **Envelope**: ApplyEnvelope marks proposed actions above the operator's authorized risk level as BlockedByEnvelope
+- **Key storage**: AiKeyStore encrypts provider keys with DPAPI (CurrentUser scope) under %APPDATA%\OpenDeviceToolkit\ai-keys.bin; keys never appear in config files or the repository
+- **Deliberate boundary**: no scraping of free web AI tiers; local model or bring-your-own-key only
+- **Location**: src/OpenDeviceToolkit.Core/Ai/ with tests under tests/OpenDeviceToolkit.Tests/Ai/
+
+#### Dashboard Shell and Theme (App)
+- **DashboardShell**: new dark-mode entry point (Program.cs now runs DashboardShell) with sidebar navigation (Dashboard, AI Assist, Workbench); MainForm remains the Workbench, launched from the sidebar
+- **Ui.Theme**: shared dark palette (WindowBack, CardBack, Accent, Success, Warning, Danger), CreateCard factory, and Style helpers for buttons, text boxes, combo boxes, and grids
+- **AiAssistPanel**: provider combo, masked key entry stored via DPAPI, model/URL configuration saved through Config.Current, priority reorder, objective and evidence input, envelope combo with double confirmation for E-Waste, risk-colored result cards, Approve writes an audit entry to Reports/ai-assist-audit.log
+- **Not yet wired**: Approve does not yet execute anything on the RP2040; that lands with the AI-to-hardware controller milestone
+
+---
+
 ## Current Test Device Context
 
 Known from user-provided ADB output:
@@ -138,34 +155,30 @@ Known from user-provided ADB output:
 
 ### Next Steps (Priority Order)
 
-1. **Verify all existing features work**
-   - Test ADB discovery with physical device
-   - Test environment diagnostics
-   - Test deep scan
-   - Verify CI build passes
+1. **Wire approved AI actions to the RP2040 through OperationGuard**
+   - Map AiProposedAction.Mode to Rp2040Mode
+   - Per-action confirmation dialog; double confirmation for PotentialBrick and above
+   - Execute through IRp2040Controller (Mock controller first, then Serial/USB)
+   - Full audit logging alongside the existing ai-assist-audit.log
 
-2. **Complete Research Engine**
-   - Add Exploit-DB research source
-   - Implement offline fingerprinting (USB IDs, partitions, bootloader responses)
-   - Add hypothesis testing logic
+2. **Complete RP2040 hardware communication**
+   - SerialRp2040Controller: serial connection, mode switching, pin configuration
+   - UsbRp2040Controller: USB HID transport
+   - Voltage measurement and complete LogicCapture implementation
 
-3. **Enhance Voice Interaction**
-   - Add more command variations and synonyms
-   - Improve natural language parsing
-   - Add voice feedback for all major operations
+3. **Theme the Workbench and migrate features into the dashboard**
+   - Apply Ui.Theme to MainForm
+   - Move Android, Research, and Voice features into DashboardShell panels
 
-4. **Implement RP2040 Hardware Communication**
-   - Serial port connection (SerialRp2040Controller)
-   - USB HID communication (UsbRp2040Controller)
-   - Mode switching commands
-   - Pin configuration
-   - Complete LogicCapture implementation
-   - Voltage measurement
+4. **Boot pin-activity monitor and offline protocol decode**
+   - Rebuild on LogicCapture (ProtocolDetector was removed in the hardware cleanup)
+   - Offline UART, SPI, and JTAG decoding from captured waveforms
 
-5. **Add Logic Analyzer Visualization**
-   - Signal waveform display (partially implemented in LogicAnalyzerForm)
-   - Protocol decoding (UART, SPI, I2C)
-   - Timing analysis
+5. **Verify the single-file installer output**
+   - Confirm build-installer.yml produces a working single-file executable on a clean Windows machine
+
+6. **Update ROADMAP.md**
+   - Record the 0.7 milestone entry covering the AI assist router and dashboard shell
 
 ---
 

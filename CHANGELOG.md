@@ -4,6 +4,22 @@ All notable changes to Open Device Toolkit are documented here.
 
 ## Unreleased
 
+### Added
+
+#### AI assist router
+- AiRouter: single analysis entry point that tries configured AI providers in priority order with automatic fallback when a provider fails or is not configured.
+- Provider abstraction (IAiProvider) with local Ollama support (no key required) and bring-your-own-key OpenAI-compatible endpoints (Mistral, OpenAI, OpenRouter). Deliberate design decision: no scraping of free web AI tiers.
+- Strict response validation: model output must parse as JSON matching the recommendation schema; unknown modes or risk levels are rejected as malformed and the raw response is preserved for audit.
+- Operator risk envelope: proposed actions above the authorized envelope (ReadOnly through EWasteMode) are marked blocked and cannot be approved.
+- DPAPI-encrypted AI key store: provider keys are encrypted for the current Windows user and stored outside config files and the repository.
+- AI configuration section (AppConfig.Ai) with provider priority, models, and Ollama URL.
+- Unit tests covering prompt parsing, router fallback, envelope blocking, stubbed provider HTTP handling, and the key store round trip.
+
+#### Dashboard shell and theming
+- New dark-mode dashboard entry point with sidebar navigation (Dashboard, AI Assist, Workbench) and status cards for workspace, AI provider, and safety state.
+- Shared dark theme module with palette, card factory, and control styling helpers for a consistent visual identity.
+- AI Assist panel: provider selection, encrypted key entry, model and endpoint configuration, objective and evidence input, risk-envelope selection with double confirmation for E-Waste mode, risk-colored result cards, approval flow, and audit logging to the Reports directory.
+
 ### Fixed
 
 #### Hardware project cleanup
