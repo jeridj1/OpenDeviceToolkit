@@ -1,4 +1,4 @@
-name: Build Full Windows Installer with ADB
+name: Build Windows Installer with ADB
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
     paths:
       - 'src/**'
       - 'OpenDeviceToolkit.sln'
+      - '.github/workflows/build-full-installer.yml'
   workflow_dispatch:
     inputs:
       publish_release:
@@ -19,157 +20,164 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2022
-    
-    steps:
-    - uses: actions/checkout@v4
+    name: Build Windows Installer with ADB
+    runs-on: windows-latest
 
-    - name: Setup .NET 8
-      uses: actions/setup-dotnet@v3
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+
+    - name: Setup .NET 8 SDK
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 8.0.x
 
-    - name: Restore and Build
+    - name: Restore, build, test
       run: |
         dotnet restore
         dotnet build --configuration Release --no-restore
         dotnet test --configuration Release --no-build
 
     - name: Publish App
-      run: |
-        dotnet publish src/OpenDeviceToolkit.App/OpenDeviceToolkit.App.csproj \
-          --configuration Release \
-          --runtime win-x64 \
-          --self-contained true \
-          --no-build \
-          /p:PublishSingleFile=true \
-          --output ./publish
+      run: >-
+        dotnet publish src/OpenDeviceToolkit.App/OpenDeviceToolkit.App.csproj
+        --configuration Release
+        --runtime win-x64
+        --self-contained true
+        /p:PublishSingleFile=true
+        --output ./publish
 
     - name: Download Google Platform-Tools (ADB + Fastboot)
       run: |
-        New-Item -ItemType Directory -Path ./installer/tools -Force
+        New-Item -ItemType Directory -Path ./installer/tools -Force | Out-Null
         $url = "https://dl.google.com/android/repository/platform-tools-latest-windows.zip"
         $zip = "$env:TEMP/platform-tools.zip"
         Invoke-WebRequest -Uri $url -OutFile $zip
         Expand-Archive -Path $zip -DestinationPath ./installer/tools -Force
-        if (-not (Test-Path ./installer/tools/platform-tools/adb.exe)) { exit 1 }
+        if (-not (Test-Path ./installer/tools/platform-tools/adb.exe)) {
+          Write-Error "Failed to download platform-tools"
+          exit 1
+        }
 
-    - name: Create installer structure
+    - name: Stage installer structure
       run: |
-        mkdir ./installer/OpenDeviceToolkit
-        cp -r ./publish/* ./installer/OpenDeviceToolkit/
-        cp -r ./installer/tools/platform-tools ./installer/OpenDeviceToolkit/tools/
-        mkdir ./installer/OpenDeviceToolkit/RP2040-Firmware
-        cp -r ./firmware/rp2040-bridge/* ./installer/OpenDeviceToolkit/RP2040-Firmware/
-        mkdir ./installer/OpenDeviceToolkit/Documentation
+        New-Item -ItemType Directory -Path ./installer/OpenDeviceToolkit -Force | Out-Null
+        Copy-Item -Recurse -Force ./publish/* ./installer/OpenDeviceToolkit/
+        Copy-Item -Recurse -Force ./installer/tools/platform-tools ./installer/OpenDeviceToolkit/tools
+        New-Item -ItemType Directory -Path ./installer/OpenDeviceToolkit/RP2040-Firmware -Force | Out-Null
+        Copy-Item -Recurse -Force ./firmware/rp2040-bridge/* ./installer/OpenDeviceToolkit/RP2040-Firmware/
+        New-Item -ItemType Directory -Path ./installer/OpenDeviceToolkit/Documentation -Force | Out-Null
 
     - name: Create appsettings.json with bundled ADB path
       run: |
-        @'
-{
-  "Workspace": { "Root": "D:\\OpenDeviceToolkit" },
-  "Adb": { "CustomPath": ".\\tools\\platform-tools", "SearchPaths": [""], "Enabled": true },
-  "Logging": { "Enabled": true, "Level": "Info", "RetentionDays": 30 },
-  "Voice": { "Enabled": true, "Rate": 0, "Volume": 100, "ConfidenceThreshold": 0.7 },
-  "Research": { "Enabled": true, "MaxConcurrentSearches": 3, "TimeoutSeconds": 30 }
-}
-'@ | Out-File -Encoding UTF8 ./installer/OpenDeviceToolkit/appsettings.json
+        $appSettings = @'
+        {
+          "Workspace": { "Root": "D:\\OpenDeviceToolkit" },
+          "Adb": { "CustomPath": ".\\tools\\platform-tools", "SearchPaths": [""], "Enabled": true },
+          "Logging": { "Enabled": true, "Level": "Info", "RetentionDays": 30 },
+          "Voice": { "Enabled": true, "Rate": 0, "Volume": 100, "ConfidenceThreshold": 0.7 },
+          "Research": { "Enabled": true, "MaxConcurrentSearches": 3, "TimeoutSeconds": 30 }
+        }
+        '@
+        [IO.File]::WriteAllText("$PWD/installer/OpenDeviceToolkit/appsettings.json", $appSettings)
 
-    - name: Create install.bat
+    - name: Create install script
       run: |
-        @'
-@echo off
-setlocal
-set SOURCE_DIR=%~dp0
-set INSTALL_DIR=C:\Program Files\OpenDeviceToolkit
-if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
-xcopy /E /Y /Q "%SOURCE_DIR%*" "%INSTALL_DIR%\" >nul
-set SHORTCUT_DIR=%APPDATA%\Microsoft\Windows\Start Menu\Programs\OpenDeviceToolkit
-if not exist "%SHORTCUT_DIR%" mkdir "%SHORTCUT_DIR%"
-(echo Set oWS = WScript.CreateObject("WScript.Shell")
-echo sLinkFile = "%SHORTCUT_DIR%\Open Device Toolkit.lnk"
-echo Set oLink = oWS.CreateShortcut(sLinkFile)
-echo oLink.TargetPath = "%INSTALL_DIR%\OpenDeviceToolkit.App.exe"
-echo oLink.WorkingDirectory = "%INSTALL_DIR%"
-echo oLink.Description = "Open Device Toolkit"
-echo oLink.IconLocation = "%INSTALL_DIR%\OpenDeviceToolkit.App.exe,0"
-echo oLink.Save) > "%TEMP%\sc.vbs"
-cscript //nologo "%TEMP%\sc.vbs"
-del "%TEMP%\sc.vbs" >nul 2>&1
-(echo Set oWS = WScript.CreateObject("WScript.Shell")
-echo sLinkFile = oWS.SpecialFolders("Desktop") ^& "\Open Device Toolkit.lnk"
-echo Set oLink = oWS.CreateShortcut(sLinkFile)
-echo oLink.TargetPath = "%INSTALL_DIR%\OpenDeviceToolkit.App.exe"
-echo oLink.WorkingDirectory = "%INSTALL_DIR%"
-echo oLink.IconLocation = "%INSTALL_DIR%\OpenDeviceToolkit.App.exe,0"
-echo oLink.Save) > "%TEMP%\dc.vbs"
-cscript //nologo "%TEMP%\dc.vbs"
-del "%TEMP%\dc.vbs" >nul 2>&1
-setx /M PATH "%PATH%;%INSTALL_DIR%\tools\platform-tools"
-echo Done! Installed to %INSTALL_DIR%
-pause
-'@ | Out-File -Encoding ASCII ./installer/OpenDeviceToolkit/install.bat
+        $installBat = @'
+        @echo off
+        setlocal
+        set SOURCE_DIR=%~dp0
+        set INSTALL_DIR=C:\Program Files\OpenDeviceToolkit
+        if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
+        xcopy /E /Y /Q "%SOURCE_DIR%*" "%INSTALL_DIR%\" >nul
+        set SHORTCUT_DIR=%APPDATA%\Microsoft\Windows\Start Menu\Programs\OpenDeviceToolkit
+        if not exist "%SHORTCUT_DIR%" mkdir "%SHORTCUT_DIR%"
+        (echo Set oWS = WScript.CreateObject("WScript.Shell")
+        echo sLinkFile = "%SHORTCUT_DIR%\Open Device Toolkit.lnk"
+        echo Set oLink = oWS.CreateShortcut(sLinkFile)
+        echo oLink.TargetPath = "%INSTALL_DIR%\OpenDeviceToolkit.App.exe"
+        echo oLink.WorkingDirectory = "%INSTALL_DIR%"
+        echo oLink.Description = "Open Device Toolkit"
+        echo oLink.IconLocation = "%INSTALL_DIR%\OpenDeviceToolkit.App.exe,0"
+        echo oLink.Save) > "%TEMP%\sc.vbs"
+        cscript //nologo "%TEMP%\sc.vbs"
+        del "%TEMP%\sc.vbs" >nul 2>&1
+        (echo Set oWS = WScript.CreateObject("WScript.Shell")
+        echo sLinkFile = oWS.SpecialFolders("Desktop") ^& "\Open Device Toolkit.lnk"
+        echo Set oLink = oWS.CreateShortcut(sLinkFile)
+        echo oLink.TargetPath = "%INSTALL_DIR%\OpenDeviceToolkit.App.exe"
+        echo oLink.WorkingDirectory = "%INSTALL_DIR%"
+        echo oLink.IconLocation = "%INSTALL_DIR%\OpenDeviceToolkit.App.exe,0"
+        echo oLink.Save) > "%TEMP%\dc.vbs"
+        cscript //nologo "%TEMP%\dc.vbs"
+        del "%TEMP%\dc.vbs" >nul 2>&1
+        setx /M PATH "%PATH%;%INSTALL_DIR%\tools\platform-tools"
+        echo Done! Installed to %INSTALL_DIR%
+        pause
+        '@
+        $installBat | Out-File -Encoding ASCII ./installer/OpenDeviceToolkit/install.bat
 
-    - name: Create uninstall.bat
+    - name: Create uninstall script
       run: |
-        @'
-@echo off
-set SHORTCUT_DIR=%APPDATA%\Microsoft\Windows\Start Menu\Programs\OpenDeviceToolkit
-if exist "%SHORTCUT_DIR%" (del "%SHORTCUT_DIR%\*.*" /q >nul 2>&1 && rmdir "%SHORTCUT_DIR%" /q >nul 2>&1)
-set DESKTOP_LINK=%USERPROFILE%\Desktop\Open Device Toolkit.lnk
-if exist "%DESKTOP_LINK%" del "%DESKTOP_LINK%" /q >nul 2>&1
-echo Removed shortcuts. Delete C:\Program Files\OpenDeviceToolkit to fully uninstall.
-pause
-'@ | Out-File -Encoding ASCII ./installer/OpenDeviceToolkit/uninstall.bat
+        $uninstallBat = @'
+        @echo off
+        set SHORTCUT_DIR=%APPDATA%\Microsoft\Windows\Start Menu\Programs\OpenDeviceToolkit
+        if exist "%SHORTCUT_DIR%" (del "%SHORTCUT_DIR%\*.*" /q >nul 2>&1 && rmdir "%SHORTCUT_DIR%" /q >nul 2>&1)
+        set DESKTOP_LINK=%USERPROFILE%\Desktop\Open Device Toolkit.lnk
+        if exist "%DESKTOP_LINK%" del "%DESKTOP_LINK%" /q >nul 2>&1
+        echo Removed shortcuts. Delete C:\Program Files\OpenDeviceToolkit to fully uninstall.
+        pause
+        '@
+        $uninstallBat | Out-File -Encoding ASCII ./installer/OpenDeviceToolkit/uninstall.bat
 
     - name: Create README
       run: |
-        @'
-Open Device Toolkit v0.6 - Windows with BUNDLED ADB
-=====================================================
+        $readme = @'
+        Open Device Toolkit v0.6 - Windows with BUNDLED ADB
+        =====================================================
 
-ADB IS NOW INCLUDED! No separate installation needed.
+        ADB IS INCLUDED! No separate installation needed.
 
-QUICK START:
-- Run: install.bat (as Administrator)
-- OR: Run OpenDeviceToolkit.App.exe directly
+        QUICK START:
+        - Run: install.bat (as Administrator)
+        - OR: Run OpenDeviceToolkit.App.exe directly
 
-FEATURES:
-✓ ADB and Fastboot are BUNDLED (tools\platform-tools\)
-✓ USB device detection works out of the box
-✓ Android device discovery without extra setup
-✓ All other ODT features
+        FEATURES:
+        - ADB and Fastboot are BUNDLED (tools\platform-tools\)
+        - USB device detection works out of the box
+        - Android device discovery without extra setup
+        - All other ODT features
 
-FOR TESLA NEURIO:
-1. Install ODT
-2. Enable USB debugging on Android device
-3. Connect via USB
-4. Click "Detect Device" - ADB will detect automatically
-5. Flash RP2040 firmware from RP2040-Firmware/
-6. Connect to jumper pads
-7. Click "RP2040 Bridge" to explore
-'@ | Out-File -Encoding ASCII ./installer/OpenDeviceToolkit/README.txt
+        TROUBLESHOOTING:
+        - Device not detected? Enable USB debugging on the Android device.
+        - Check the USB cable (must be data-capable).
+        '@
+        $readme | Out-File -Encoding ASCII ./installer/OpenDeviceToolkit/Documentation/README.txt
 
     - name: Create ZIP
-      run: Compress-Archive -Path ./installer/OpenDeviceToolkit/* -DestinationPath ./ODT-Windows-WithADB.zip
+      run: |
+        Compress-Archive -Path ./installer/OpenDeviceToolkit/* -DestinationPath ./ODT-Windows-WithADB.zip -CompressionLevel Optimal
+        $zipSize = (Get-Item ./ODT-Windows-WithADB.zip).Length
+        Write-Host "Archive size: $([math]::Round($zipSize / 1MB, 1)) MB"
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ODT-Windows-WithADB
         path: ODT-Windows-WithADB.zip
+        retention-days: 30
 
     - name: Publish Release
       if: inputs.publish_release == 'true'
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ inputs.version }}
         name: ODT v${{ inputs.version }} - Windows with ADB
         body: |
           Full Windows installer with BUNDLED ADB and Fastboot.
-          
+
           Download, extract, and run - no ADB installation needed!
-          
+
           ADB is automatically configured and ready to use.
         files: ODT-Windows-WithADB.zip
         prerelease: true

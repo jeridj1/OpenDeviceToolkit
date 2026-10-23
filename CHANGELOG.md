@@ -22,6 +22,11 @@ All notable changes to Open Device Toolkit are documented here.
 
 ### Fixed
 
+#### Installer workflows
+- Repaired build-installer.yml and build-full-installer.yml: the previous YAML was invalid (PowerShell here-string bodies written at column zero broke the block scalars), so every run failed at startup without executing a single job.
+- The publish step no longer combines --no-build with a win-x64 runtime that was never restored, and PublishTrimmed is dropped because it is unsupported for WinForms applications.
+- Both workflows now re-run when their own workflow file changes so pipeline fixes can be verified.
+
 #### Hardware project cleanup
 - Removed duplicate/conflicting RP2040Controller.cs from Rp2040/ subdirectory that caused type conflicts with the split architecture.
 - Removed 21 deprecated/unused files from Hardware project:
