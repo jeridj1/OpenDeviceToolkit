@@ -1,4 +1,4 @@
 using OpenDeviceToolkit.App;
 
 ApplicationConfiguration.Initialize();
-Application.Run(new MainForm());
+Application.Run(new DashboardShell());
