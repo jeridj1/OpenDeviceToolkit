@@ -291,7 +291,7 @@ Experimental Mode:
 - [ ] Multi-device detection
 - [ ] Report generation
 - [ ] Workspace opening
-- [ ] Installer workflows (build-installer.yml, build-full-installer.yml) produce the single-file ZIP artifact (workflows repaired this session; verify on next CI run)
+- [x] Installer workflows (build-installer.yml, build-full-installer.yml) repaired and verified green on CI (all four workflows pass on commit 2812e55); single-file ZIP artifacts uploaded
 
 ---
 
