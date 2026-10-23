@@ -75,6 +75,39 @@ public sealed class ResearchConfig
 }
 
 /// <summary>
+/// Configuration for the AI assist router. Provider API keys are NEVER stored
+/// here; they live in the DPAPI-encrypted AiKeyStore.
+/// </summary>
+public sealed class AiConfig
+{
+    [JsonPropertyName("enabled")]
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// Provider names in fallback priority order. The router tries the first
+    /// available provider and falls back down this list on failure.
+    /// Valid names: Ollama, Mistral, OpenAi, OpenRouter.
+    /// </summary>
+    [JsonPropertyName("providerPriority")]
+    public List<string> ProviderPriority { get; set; } = new() { "Ollama", "Mistral", "OpenRouter", "OpenAi" };
+
+    [JsonPropertyName("ollamaUrl")]
+    public string OllamaUrl { get; set; } = "http://localhost:11434";
+
+    [JsonPropertyName("ollamaModel")]
+    public string OllamaModel { get; set; } = "llama3.2";
+
+    [JsonPropertyName("mistralModel")]
+    public string MistralModel { get; set; } = "mistral-small-latest";
+
+    [JsonPropertyName("openAiModel")]
+    public string OpenAiModel { get; set; } = "gpt-4o-mini";
+
+    [JsonPropertyName("openRouterModel")]
+    public string OpenRouterModel { get; set; } = "meta-llama/llama-3.3-70b-instruct:free";
+}
+
+/// <summary>
 /// Represents the application configuration loaded from appsettings.json.
 /// </summary>
 public sealed class AppConfig
@@ -93,6 +126,9 @@ public sealed class AppConfig
     
     [JsonPropertyName("research")]
     public ResearchConfig Research { get; set; } = new();
+
+    [JsonPropertyName("ai")]
+    public AiConfig Ai { get; set; } = new();
 
     public static AppConfig Load()
     {
